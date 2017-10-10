@@ -9,23 +9,43 @@ module SL_transiever (
   // output wire sl0,
   // output wire sl1,
 
-  //APB related signals
-  // input wire pclk,
-  // input wire preset_n,
-  // input wire [7:0] paddr,
-  // input wire pprot,
-  // input wire psel,
-  // input wire penable,
-  // input wire pwrite,
-  // inout wire [31:0]pdata,
-  // input wire pstrb,
-  // output wire pready,
-  // output wire pslverr
+ // APB related signals
+  input wire pclk_a,
+  input wire preset_n_a,
+  input wire [ 7:0] paddr_a,
+  input wire [ 3:0] pstrb_a,
+  input wire pprot_a,
+  input wire psel_a,
+  input wire penable_a,
+  input wire pwrite_a,
+  output wire pready_a,
+  output wire pslverr_a,
+  inout wire [31:0] pdata_a,
 
     );
 
 parameter STROB_POS = 8;
+parameter CONFIG_ADDRESS  = 0'b0001;
+parameter DATA_ADDRESS_WR = 0'b0010;
+parameter DATA_ADDRESS_R  = 0'b0100;
+parameter STATUS_ADDRESS  = 0'b1000;
 
+
+//APB resynchronisation registers
+reg [ 7:0] sync1_paddr_r;
+reg [31:0] sync1_pdata_r;
+reg [ 7:0] sync1_misc_r; //we DO NOT sync 'pclk' and 'preset_n'
+
+reg [ 7:0] in_paddr_r;
+reg [31:0] in_pdata_r;
+reg [ 7:0] in_misc_r;
+
+wire {pprot, psel, penable, pwrite, pstrb[3:0]};
+
+assign {pprot, psel, penable, pwrite, pstrb[3:0]} = in_misc_r[7:0];
+
+
+// SL receiver related registers
 reg [15:0] sl0_tmp_r; //shift regs to temporary store input sequence
 reg [15:0] sl1_tmp_r;
 reg [31:0] shift_data_r;
@@ -36,34 +56,40 @@ reg [ 4:0]  state_r; //RECEIVER MODE: 0 - idle, 1 - receiveing started, 1a - bit
 
 reg [31:0] buffered_data_r;
 reg [63:0] data_to_send_r;
-reg [15:0] config_r; //[0] - parity check, [6:1] - bit cnt(8-32bits), [7] - rxtx mode, [8] - IRQ mode
-reg [15:0] status_r; //[0] - word length fail, [1] - word receiveing process going, [2] - noise on input lines
+reg [15:0] config_r; //[0] - parity check, [6:1] - bit cnt(8-32bits), [7] - rxtx mode, [8] - IRQ mode ####address on config_r is 0 (zero)
+reg [15:0] status_r; //[0] - word length fail, [1] - word receiveing process going, [2] - empty
                     //[3] - word received, [4] - parity error, [5] - level error on line,
 reg parity_ones;
 reg parity_zeroes;
 
-always @(posedge clk)
-begin
-  if( rst_n == 1'b0 ) begin //| preset_n == 1'b0 )
-    sl0_tmp_r[15:0]       <= 16'hAAAA;
-    sl1_tmp_r[15:0]       <= 16'hAAAA;
-    shift_data_r[31:0]    <= 0;
-    cycle_cnt_r[5:0]      <= 0;
-    bit_cnt_r[5:0]        <= 0;
-    state_r[4:0]          <= 5'b00001;
-    buffered_data_r[31:0] <= 0;
-    data_to_send_r[63:0]  <= 0;
-    config_r[15:0]        <= 16'b0000_0000_0010_0000;
-    status_r[15:0]        <= 0;   
-    parity_zeroes         <= 0;
-    parity_ones           <= 1;   
+//Synchronisation registers
+reg [31:0] sync1_buffered_data_r;
+reg [15:0] sync1_config_r;
+reg [15:0] sync1_status_r;
 
-  end
-end
+reg [31:0] apb_buffered_data_r;
+reg [15:0] apb_config_r;
+reg [15:0] apb_status_r;
 
 
-always @(posedge clk) begin 
-  if( !config_r[7] )  //RECEIVER ROUTINE
+
+reg [2:0] apb_state; //001 - IDLE, 010 - SETUP, 100 - ACCESS
+
+always @(posedge clk or negedge rst_n or negedge preset_n) begin 
+if( rst_n == 1'b0  | preset_n == 1'b0 ) begin
+  sl0_tmp_r[15:0]       <= 16'hAAAA;
+  sl1_tmp_r[15:0]       <= 16'hAAAA;
+  shift_data_r[31:0]    <= 0;
+  cycle_cnt_r[5:0]      <= 0;
+  bit_cnt_r[5:0]        <= 0;
+  state_r[4:0]          <= 5'b00001;
+  buffered_data_r[31:0] <= 0;
+  data_to_send_r[63:0]  <= 0;
+  config_r[15:0]        <= 16'b0000_0000_0010_0000;
+  status_r[15:0]        <= 0;   
+  parity_zeroes         <= 0;
+  parity_ones           <= 1;   
+end else  if( !config_r[7] )  //RECEIVER ROUTINE
   begin
     sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
     sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
@@ -75,21 +101,28 @@ always @(posedge clk) begin
                     cycle_cnt_r <= 3;
                     status_r[0] <= 0; //word length ok
                     status_r[1] <= 1; //receiving process on
-                    status_r[2] <= 0; //as word correctly received, no noise on inout lines
                     status_r[3] <= 0; //Word received flag off
                     status_r[4] <= 0; //no parity error atm
                     status_r[5] <= 0; //no level errors on line
                   end
-                  else if( sl0_tmp_r[2:0] == 3'b101 || sl1_tmp_r[2:0] == 3'b101 )  status_r[2] <= 1; //Noise on line
-                    else status_r[2] <= 0;
+                  else begin
+                    status_r[0] <= 0; //word length ok
+                    status_r[1] <= 0; //receiving process off
+                    status_r[3] <= 0; //Word received flag off
+                    status_r[4] <= 0; //no parity error atm
+                    status_r[5] <= 0; //no level errors on line
+                  end
                 end
       5'b00010: begin //RECEIVING state
-                  cycle_cnt_r <= cycle_cnt_r + 1;
                   if( cycle_cnt_r == STROB_POS )
                   begin
                     state_r <= state_r << 1;
                     if ( !serial_line_ones_a && !serial_line_zeroes_a ) //Если стоп-бит
                     begin
+                      parity_zeroes <= 0;
+                      parity_ones   <= 1;
+                      shift_data_r  <= 0;
+                      bit_cnt_r     <= 0;
                       if( bit_cnt_r[5:0] == config_r[6:1] ) //Проверяем количество принятых разрядов
                       begin
                         status_r[0] <= 0; //word length ok
@@ -113,6 +146,7 @@ always @(posedge clk) begin
                     else 
                     begin
                       bit_cnt_r <= bit_cnt_r + 1;
+                      cycle_cnt_r <= cycle_cnt_r + 1;
                       if ( !serial_line_ones_a ) //Если единичка
                         begin
                           shift_data_r <= ( shift_data_r >> 1 ) | 32'h8000_0000; //Store data in high bits of register
@@ -127,23 +161,12 @@ always @(posedge clk) begin
                   end
                 end    
       5'b00100: begin //WAITING for bit transmission end state
-                  if( sl0_tmp_r[3:0] == 4'h0 && sl1_tmp_r[3:0] == 4'h0 ) begin //IF we are here after STOP bit detection
-                    parity_zeroes <= 0;
-                    parity_ones   <= 1;
-                    shift_data_r  <= 0;
-                    bit_cnt_r     <= 0;
-                  end
-
                   if( sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF )
                   begin
-                    state_r <= 5'b00001; //go to the IDLE state
+                    state_r <= state_r >> 2; //go to the IDLE state
                     cycle_cnt_r <= 0;
-                    status_r[1] <= 1; //Receiving going
                   end
-                  else begin
-                    cycle_cnt_r <= cycle_cnt_r + 1;
-                    if( cycle_cnt_r >= 32 ) status_r[5] <= 1; //level error on line
-                  end
+                  else cycle_cnt_r <= cycle_cnt_r + 1;
                 end
       default: state_r <= 5'b00001;
     endcase
@@ -153,6 +176,96 @@ always @(posedge clk) begin
   end
 
 end
+
+
+// always @(posedge clk) begin 
+
+//   sync1_paddr_r      <= paddr_a;
+//   sync1_pdata_r      <= pdata_a;
+//   sync1_misc_r[7:0]  <= {pprot_a, psel_a, penable_a, pwrite_a, pstrb_a[3:0]};
+
+//   in_paddr_r <= sync1_paddr_r;
+//   in_pdata_r <= sync1_pdata_r;
+//   in_misc_r  <= sync1_misc_r;
+
+
+
+
+// end
+
+
+always @(posedge clk or negedge rst_n or negedge preset_n) begin
+  if ( !rst_n || !preset_n ) begin
+    //First stage sync
+    sync1_buffered_data_r <= 32'h0000_0000;
+    sync1_config_r        <= 16'h0000;
+    sync1_status_r        <= 16'h0000;
+
+    //Second stage sync
+    apb_buffered_data_r   <= 32'h0000_0000;
+    apb_config_r          <= 16'h0000;
+    apb_status_r          <= 16'h0000;
+    
+  end
+  else if () begin
+    //First stage sync
+    sync1_buffered_data_r <= buffered_data_r;
+    sync1_config_r        <= config_r;
+    sync1_status_r        <= status_r;
+
+    //Second stage sync
+    apb_buffered_data_r   <= sync1_buffered_data_r;
+    apb_config_r          <= sync1_config_r;
+    apb_status_r          <= sync1_status_r;
+
+    case( apb_state )
+    3'b001: begin //IDLE state, PSELx = 0, PENABLE = 0
+              if( psel && !penable ) begin
+                apb_state <= 3'b010;
+
+                if( pwrite ) begin // WRITE sequence
+                  case( paddr )
+                    CONFIG_ADDRESS: begin
+                                      config_r[15:0] <= in_pdata_r[15:0];
+                                    end
+                    DATA_ADDRESS_WR:  begin
+                                        data_to_send_r[31:0] <= in_pdata_r[31:0];
+                                      end
+                    default:  begin
+                              end
+                end
+                else begin //READ sequence
+                  
+                end
+
+
+              end else apb_state <= 3'b001;
+            end
+    3'b010: begin //SETUP state, PSELx = 1, PENABLE = 0
+              apb_state <= 3'b100;
+
+            end
+    3'b100: begin //ACCESS state, PSELx = 1, PENABLE = 1
+              
+            end
+    default: apb_state <= 3'b001;
+
+
+    
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
 
 endmodule
 
