@@ -1,0 +1,61 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dD:/1553B receiver
+T_opt
+!s110 1507630003
+V>XRQbe:NbaQEV7hiG]XnU3
+04 8 4 work sl_rt_tb fast 0
+=1-00c0ca627c5f-59dc9bb2-22a-1724
+o-quiet -auto_acc_if_foreign -work work
+Z1 tCvgOpt 0
+n@_opt
+OL;O;10.5;63
+R0
+vsl_rt_tb
+Z2 VDg1SIo80bB@j0V0VzS_@n1
+r1
+!s85 0
+31
+!i10b 1
+!s100 9JFCZ12aSHa7b2XQlV7oI2
+IG3a50WWL7R7`7gAhe0If82
+Z3 dD:/RISC-V/SL transiever/sim
+w1507631266
+8D:/RISC-V/SL transiever/bench/hdl/tb_SL.v
+FD:/RISC-V/SL transiever/bench/hdl/tb_SL.v
+L0 3
+Z4 OL;L;10.5;63
+!s108 1507631268.000000
+!s107 D:/RISC-V/SL transiever/bench/hdl/tb_SL.v|
+!s90 -reportprogress|300|-work|work|-vopt|-stats=none|D:/RISC-V/SL transiever/bench/hdl/tb_SL.v|
+!i113 0
+Z5 o-work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R1
+vSL_transiever
+R2
+r1
+!s85 0
+31
+!i10b 1
+!s100 XcHeQ=<dV<YZB[oGhYgAi2
+ITE=;cV`^6b>YNIeLB9]So3
+R3
+w1507564230
+8D:/RISC-V/SL transiever/rtl/SL.v
+FD:/RISC-V/SL transiever/rtl/SL.v
+L0 1
+R4
+!s108 1507567874.000000
+!s107 D:/RISC-V/SL transiever/rtl/SL.v|
+!s90 -reportprogress|300|-work|work|-vopt|-stats=none|D:/RISC-V/SL transiever/rtl/SL.v|
+!i113 0
+R5
+R1
+n@s@l_transiever
