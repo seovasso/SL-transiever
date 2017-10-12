@@ -1,60 +1,41 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate /sl_rt_tb/dut/STROB_POS
-add wave -noupdate /sl_rt_tb/dut/rst_n
-add wave -noupdate /sl_rt_tb/dut/clk
-add wave -noupdate /sl_rt_tb/dut/serial_line_zeroes_a
-add wave -noupdate /sl_rt_tb/dut/serial_line_ones_a
-add wave -noupdate /sl_rt_tb/dut/sl0_tmp_r
-add wave -noupdate /sl_rt_tb/dut/sl1_tmp_r
+add wave -noupdate /sl_rt_tb/reset
+add wave -noupdate /sl_rt_tb/clk
+add wave -noupdate /sl_rt_tb/sl0
+add wave -noupdate /sl_rt_tb/sl1
+add wave -noupdate /sl_rt_tb/pclk
+add wave -noupdate /sl_rt_tb/preset_n
+add wave -noupdate /sl_rt_tb/paddr
+add wave -noupdate /sl_rt_tb/psel
+add wave -noupdate /sl_rt_tb/penable
+add wave -noupdate /sl_rt_tb/pwrite
+add wave -noupdate /sl_rt_tb/pdata
+add wave -noupdate /sl_rt_tb/parity0
+add wave -noupdate /sl_rt_tb/parity1
+add wave -noupdate /sl_rt_tb/var1
+add wave -noupdate /sl_rt_tb/i
+add wave -noupdate /sl_rt_tb/word
+add wave -noupdate /sl_rt_tb/ini_word
+add wave -noupdate /sl_rt_tb/dut/buffered_data_r
+add wave -noupdate /sl_rt_tb/dut/apb_buffered_data_r
+add wave -noupdate /sl_rt_tb/dut/apb_config_r
+add wave -noupdate /sl_rt_tb/dut/apb_status_r
+add wave -noupdate /sl_rt_tb/dut/apb_muxed_out_r
+add wave -noupdate /sl_rt_tb/dut/apb_state
 add wave -noupdate /sl_rt_tb/dut/shift_data_r
 add wave -noupdate /sl_rt_tb/dut/cycle_cnt_r
-add wave -noupdate /sl_rt_tb/dut/bit_cnt_r
-add wave -noupdate /sl_rt_tb/dut/state_r
+add wave -noupdate -radix decimal /sl_rt_tb/dut/bit_cnt_r
+add wave -noupdate -radix binary /sl_rt_tb/dut/state_r
 add wave -noupdate /sl_rt_tb/dut/buffered_data_r
-add wave -noupdate /sl_rt_tb/dut/data_to_send_r
 add wave -noupdate /sl_rt_tb/dut/config_r
 add wave -noupdate /sl_rt_tb/dut/status_r
 add wave -noupdate /sl_rt_tb/dut/parity_ones
 add wave -noupdate /sl_rt_tb/dut/parity_zeroes
-add wave -noupdate /sl_rt_tb/sl_sender/pause_between_words
-add wave -noupdate /sl_rt_tb/sl_sender/value_of_pause
-add wave -noupdate /sl_rt_tb/sl_sender/word_legth_min
-add wave -noupdate /sl_rt_tb/sl_sender/word_length_max
-add wave -noupdate /sl_rt_tb/sl_sender/word_length_incr
-add wave -noupdate /sl_rt_tb/sl_sender/ei_data_sl0
-add wave -noupdate /sl_rt_tb/sl_sender/ei_data_sl1
-add wave -noupdate /sl_rt_tb/sl_sender/ei_quantity
-add wave -noupdate /sl_rt_tb/sl_sender/ei_parity
-add wave -noupdate /sl_rt_tb/sl_sender/ei_fh
-add wave -noupdate /sl_rt_tb/sl_sender/ei_fl
-add wave -noupdate /sl_rt_tb/sl_sender/ei_noise_sl0
-add wave -noupdate /sl_rt_tb/sl_sender/ei_noise_sl1
-add wave -noupdate /sl_rt_tb/sl_sender/sl0
-add wave -noupdate /sl_rt_tb/sl_sender/sl1
-add wave -noupdate /sl_rt_tb/sl_sender/parity0
-add wave -noupdate /sl_rt_tb/sl_sender/parity1
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_data_sl0
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_data_sl1
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_quantity
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_fh
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_fl
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_noise_sl0
-add wave -noupdate /sl_rt_tb/sl_sender/fl_ei_noise_sl1
-add wave -noupdate /sl_rt_tb/tck
-add wave -noupdate /sl_rt_tb/reset_after_each_word
-add wave -noupdate /sl_rt_tb/start_word
-add wave -noupdate /sl_rt_tb/finish_word
-add wave -noupdate /sl_rt_tb/increment_word
-add wave -noupdate /sl_rt_tb/start
-add wave -noupdate /sl_rt_tb/reset
-add wave -noupdate /sl_rt_tb/clk
-add wave -noupdate /sl_rt_tb/sl00
-add wave -noupdate /sl_rt_tb/sl10
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {18394800 ps} 0}
+WaveRestoreCursors {{Cursor 1} {5174200 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 150
+configure wave -namecolwidth 222
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
@@ -68,4 +49,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {21425800 ps} {27087100 ps}
+WaveRestoreZoom {0 ps} {7008 ns}

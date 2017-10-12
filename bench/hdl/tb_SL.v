@@ -4,17 +4,19 @@ module sl_rt_tb;
 
 reg reset;       // Common asycnhronous reset
 reg clk;
-// reg clk;         // Crystal input
-//reg sl00;
-//reg sl10;
-// reg p0;
-// reg p1;
 parameter tck = 10; // clock tick
 reg sl0;
 reg sl1;
+reg pclk;
+reg preset_n;
+reg [ 7:0] paddr;
+reg psel; //Cant work only with address checking cause of bi-directional data bus
+reg penable;
+reg pwrite;
+wire [31:0] pdata;
 
 
-SL_transiever dut(reset, clk, sl0, sl1);
+SL_transiever dut(reset, clk, sl0, sl1, clk, reset, paddr, psel, penable, pwrite, pdata);
 
 //Error injection parameters
 reg ei_data_sl0;
@@ -53,12 +55,13 @@ parameter finish_word = 32'hFFFF_FFFF;
 parameter increment_word = 8'h1E;
 
 
-integer var = 0;
-integer i = 0;
-integer word = 0;
-integer ini_word = 0;
+int var1 = 0;
+int i = 0;
+int word = 0;
+int ini_word = 0;
 
 always #(tck/2) clk <= ~clk; // clocking device
+always #(tck/2) pclk <= ~pclk; // clocking device
 
 initial begin
   $dumpfile("sl_rt.vcd");
@@ -69,134 +72,157 @@ end
 // testbench actions
 initial 
 begin
+  pclk     = 0;
+  preset_n = 0;
+  paddr    = 0;
+  psel     = 0;
+  penable  = 0;
+  pwrite   = 0;
+
+
   clk   = 0; 
   reset = 0;
   sl0   = 0;
   sl1   = 0;
   #(tck*10);
   reset = 1;
+  preset_n = 1;
   #(tck*2);
 
-  repeat ( 32 ) begin
 
 
+  ini_word = $urandom_range(0,16'hFFFF);
+  word = ini_word;
+  ei_data_sl0   = 0;
+  ei_data_sl1   = 0;
+  ei_quantity   = 0;
+  ei_parity     = 0;
+  ei_fh         = 0;  //freq high
+  ei_fl         = 0;  //freq low
+  ei_noise_sl0  = 0;
+  ei_noise_sl1  = 0;
 
+  fl_ei_data_sl0 = 0; //
+  fl_ei_data_sl1 = 0;//
+  fl_ei_quantity = 0;
+  fl_ei_fh = 0;  //freq high
+  fl_ei_fl = 0;  //freq low
+  fl_ei_noise_sl0 = 0;//
+  fl_ei_noise_sl1 = 0;//
+  sl0 = 1;
+  sl1 = 1;
+  parity0  = 0;
+  parity1  = 0;
+  #(tck*16);
 
+      i = 16;
+    //for( i = word_legth_min; i <= word_length_max; i = i + word_length_incr ) begin
+      for( var1 = 0; var1 < i; var1 = var1 + 1) begin
+        if( word & 1 ) begin
 
-
-
-
-  begin
-    ini_word = $urandom_range(0,16'hFFFF);
-    word = ini_word;
-    ei_data_sl0   = $urandom_range(0,1);
-    ei_data_sl1   = $urandom_range(0,1);
-    ei_quantity   = $urandom_range(0,1);
-    ei_parity     = $urandom_range(0,1);
-    ei_fh         = $urandom_range(0,1);  //freq high
-    ei_fl         = $urandom_range(0,1);  //freq low
-    ei_noise_sl0  = $urandom_range(0,1);
-    ei_noise_sl1  = $urandom_range(0,1);
-
-    fl_ei_data_sl0 = 0; //
-    fl_ei_data_sl1 = 0;//
-    fl_ei_quantity = 0;
-    fl_ei_fh = 0;  //freq high
-    fl_ei_fl = 0;  //freq low
-    fl_ei_noise_sl0 = 0;//
-    fl_ei_noise_sl1 = 0;//
-    sl0 = 1;
-    sl1 = 1;
-    parity0  = 0;
-    parity1  = 0;
-    #(tck*16);
-
-      for( i = word_legth_min; i <= word_length_max; i = i + word_length_incr ) begin
-        for( var = 0; var < i; var = var + 1) begin
-          if( word & 1 ) begin
-
-            sl1 = 0;
-            parity1 = parity1 ^ 1;
-            #(tck*16);
-            sl1 = 1;
-            #(tck*8);
-
-            if( !fl_ei_data_sl1 && ei_data_sl1 ) begin
-              sl1 = 0;
-              #(tck*4);
-              sl1 = 1;
-              #(tck*4);
-              fl_ei_data_sl0 = 1;
-            end else if( !fl_ei_noise_sl1 && ei_noise_sl1 ) begin
-              sl1 = 0;
-              #(tck*1);
-              sl1 = 1;
-              #(tck*7);
-              fl_ei_noise_sl1 = 1;
-            end
-            else #(tck*8);
-
-          end
-          else begin
-            sl0 = 0;
-            parity0 = parity0 ^ 1;
-            #(tck*16);
-            sl0 = 1;
-            #(tck*4);
-
-            if( !fl_ei_data_sl0 && ei_data_sl0 ) begin
-              sl0 = 0;
-              #(tck*4);
-              sl0 = 1;
-              #(tck*4);
-              fl_ei_data_sl0 = 1;
-            end
-            else if( !fl_ei_noise_sl0 && ei_noise_sl0 ) begin
-              sl0 = 0;
-              #(tck*1);
-              sl0 = 1;
-              #(tck*7);
-              fl_ei_noise_sl0 = 1;
-            end
-            else #(tck*8);
-
-          end
-          word = word >> 1;
-        end
-
-        // add parity bit
-        if( parity1 && ei_parity ) begin
-          sl0 = 0;
-          #(tck*16);
-          sl0 = 1;
-          #(tck*16);
-        end
-        else begin
           sl1 = 0;
+          parity1 = parity1 ^ 1;
           #(tck*16);
           sl1 = 1;
-          #(tck*16);
-        end
+          #(tck*8);
 
-        // add stop bit
-        sl1 = 0;
+          if( !fl_ei_data_sl1 && ei_data_sl1 ) begin
+            sl1 = 0;
+            #(tck*4);
+            sl1 = 1;
+            #(tck*4);
+            fl_ei_data_sl0 = 1;
+          end else if( !fl_ei_noise_sl1 && ei_noise_sl1 ) begin
+            sl1 = 0;
+            #(tck*1);
+            sl1 = 1;
+            #(tck*7);
+            fl_ei_noise_sl1 = 1;
+          end
+          else #(tck*8);
+
+        end
+        else begin
+          sl0 = 0;
+          parity0 = parity0 ^ 1;
+          #(tck*16);
+          sl0 = 1;
+          #(tck*4);
+
+          if( !fl_ei_data_sl0 && ei_data_sl0 ) begin
+            sl0 = 0;
+            #(tck*4);
+            sl0 = 1;
+            #(tck*4);
+            fl_ei_data_sl0 = 1;
+          end
+          else if( !fl_ei_noise_sl0 && ei_noise_sl0 ) begin
+            sl0 = 0;
+            #(tck*1);
+            sl0 = 1;
+            #(tck*7);
+            fl_ei_noise_sl0 = 1;
+          end
+          else #(tck*8);
+
+        end
+        word = word >> 1;
+      end
+
+      // add parity bit
+      if( parity1 && ei_parity ) begin
         sl0 = 0;
         #(tck*16);
         sl0 = 1;
+        #(tck*16);
+      end
+      else begin
+        sl1 = 0;
+        #(tck*16);
         sl1 = 1;
         #(tck*16);
+      end
 
-        //add delay after word
-        #(tck*160);
+      // add stop bit
+      sl1 = 0;
+      sl0 = 0;
+      #(tck*16);
+      sl0 = 1;
+      sl1 = 1;
+      #(tck*16);
 
+      //add delay after word
+      #(tck*16);
 
-    end
-  end
+      #(tck/2);
+      //APB master read sequence
+      paddr  <= 4'b0100;
+      pwrite <= 0;
+      psel   <= 1;
+      #tck;
+
+      penable <= 1;
+      #tck;
+
+      paddr   <= 0;
+      pwrite  <= 0;
+      psel    <= 0;
+      penable <= 0;
+
+      #tck;
+      paddr  <= 4'b1000;
+      pwrite <= 0;
+      psel   <= 1;
+      #tck;
+
+      penable <= 1;
+      #tck;
+
+      paddr   <= 0;
+      pwrite  <= 0;
+      psel    <= 0;
+      penable <= 0;
+
 
 end
-
-
-
-end
-
 endmodule
