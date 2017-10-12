@@ -82,8 +82,8 @@ begin
 
   clk   = 0; 
   reset = 0;
-  sl0   = 0;
-  sl1   = 0;
+  sl0   = 1;
+  sl1   = 1;
   #(tck*10);
   reset = 1;
   preset_n = 1;
@@ -117,7 +117,7 @@ begin
 
       i = 16;
     //for( i = word_legth_min; i <= word_length_max; i = i + word_length_incr ) begin
-      for( var1 = 0; var1 < i; var1 = var1 + 1) begin
+      for( var1 = 0; var1 < i ; var1 = var1 + 1 ) begin
         if( word & 1 ) begin
 
           sl1 = 0;
@@ -170,7 +170,8 @@ begin
       end
 
       // add parity bit
-      if( parity1 && ei_parity ) begin
+      // if( parity1 && ei_parity ) begin
+      if( parity1 ) begin
         sl0 = 0;
         #(tck*16);
         sl0 = 1;

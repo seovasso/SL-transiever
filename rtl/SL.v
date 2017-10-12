@@ -145,7 +145,7 @@ end else  if( !config_r[7] )  //RECEIVER ROUTINE
                       parity_ones   <= 1;
                       shift_data_r  <= 0;
                       bit_cnt_r     <= 0;
-                      if( bit_cnt_r[5:0] == config_r[6:1] + 1 ) //Проверяем количество принятых разрядов
+                      if( bit_cnt_r[5:0] == config_r[6:1] ) //Проверяем количество принятых разрядов
                       begin
                         status_r[0] <= 0; //word length ok
                         status_r[1] <= 0; //receiving process ended
@@ -167,17 +167,39 @@ end else  if( !config_r[7] )  //RECEIVER ROUTINE
                     end
                     else 
                     begin
-                      bit_cnt_r <= bit_cnt_r + 1;
-                      if ( !serial_line_ones_a ) //Если единичка
-                        begin
-                          shift_data_r <= ( shift_data_r >> 1 ) | 32'h8000_0000; //Store data in high bits of register
-                          parity_ones  <= parity_ones ^ 1;
-                        end
-                        else  //Если нолик
+                      if( bit_cnt_r[5:0] < config_r[6:1] ) begin  //not parity bit
+                        if ( !serial_line_ones_a ) //Если единичка
                           begin
-                            shift_data_r  <= ( shift_data_r >> 1 ) & 32'h7FFF_FFFF;
-                            parity_zeroes <= parity_zeroes ^ 1;
+                            shift_data_r <= ( shift_data_r >> 1 ) | ( 1 << config_r[6:1] - 1 ); //Store data in high bits of register
+                            parity_ones  <= parity_ones ^ 1;
+                            bit_cnt_r <= bit_cnt_r + 1;
                           end
+                          else  if( !serial_line_zeroes_a )  //Если нолик
+                            begin
+                              shift_data_r  <= ( shift_data_r >> 1 ) & ~( 1 << config_r[6:1] -1 );
+                              parity_zeroes <= parity_zeroes ^ 1;
+                              bit_cnt_r <= bit_cnt_r + 1;
+                            end
+                            else begin // Expected data on line, but there is no data, so flush all registers and go back to IDEL state
+                              status_r[0] <= 0; //word length ok
+                              status_r[1] <= 0; //receiving process ended
+                              status_r[2] <= 0; //as word correctly received, no noise on inout lines
+                              status_r[3] <= 0; //word is not received
+                              status_r[4] <= 0; //no parity error atm
+                              status_r[5] <= 1; //level errors on line
+
+                              sl0_tmp_r[15:0]       <= 16'hAAAA;
+                              sl1_tmp_r[15:0]       <= 16'hAAAA;
+                              shift_data_r[31:0]    <= 0;
+                              cycle_cnt_r[5:0]      <= 0;
+                              bit_cnt_r[5:0]        <= 0;
+                              state_r[4:0]          <= 5'b00001;
+                              buffered_data_r[31:0] <= 0;
+                              data_to_send_r[31:0]  <= 0;
+                              parity_zeroes         <= 0;
+                              parity_ones           <= 1; 
+                            end
+                      end
                     end
                   end
                   else cycle_cnt_r <= cycle_cnt_r + 1;
