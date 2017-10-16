@@ -13,7 +13,7 @@ module SL_transiever (
  //Master APB signals
   input wire pclk_a,
   input wire preset_n_a,
-  input wire [ 7:0] paddr_a, //let's pretend that this is HIGHER bits of address space, i mean sys_addr[31:24]. 
+  input wire [ 7:0] paddr_a, //let's pretend that this is HIGHER bits of address space, i mean sys_addr[31:24].
   //input wire [ 3:0] pstrb_a, //remove this also
   //input wire pprot_a[2:0], //dont need this also
   input wire psel_a, //Cant work only with address checking cause of bi-directional data bus
@@ -97,7 +97,7 @@ assign pdata_a = ( penable_a && psel_a && !pwrite_a ) ? apb_muxed_out_r : 32'bz;
 
 
 
-always @(posedge clk or negedge rst_n or negedge preset_n_a) begin 
+always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
 if( !rst_n | !preset_n_a ) begin
   sl0_tmp_r[15:0]       <= 16'hAAAA;
   sl1_tmp_r[15:0]       <= 16'hAAAA;
@@ -108,9 +108,9 @@ if( !rst_n | !preset_n_a ) begin
   buffered_data_r[31:0] <= 0;
   data_to_send_r[31:0]  <= 0;
   config_r[15:0]        <= 16'h0020;
-  status_r[15:0]        <= 0;   
+  status_r[15:0]        <= 0;
   parity_zeroes         <= 0;
-  parity_ones           <= 1;   
+  parity_ones           <= 1;
 end else  if( !config_r[7] )  //RECEIVER ROUTINE
   begin
     sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
@@ -165,7 +165,7 @@ end else  if( !config_r[7] )  //RECEIVER ROUTINE
                       if( !parity_zeroes && !parity_ones ) status_r[4] <= 0; //parity ok
                       else status_r[4] <= 1; //parity check fail
                     end
-                    else 
+                    else
                     begin
                       if( bit_cnt_r[5:0] < config_r[6:1] ) begin  //not parity bit
                         if ( !serial_line_ones_a ) //Если единичка
@@ -180,13 +180,13 @@ end else  if( !config_r[7] )  //RECEIVER ROUTINE
                               parity_zeroes <= parity_zeroes ^ 1;
                               bit_cnt_r <= bit_cnt_r + 1;
                             end
-                      end else 
+                      end else
                         if ( !serial_line_ones_a ) parity_ones  <= parity_ones ^ 1;
                           else  parity_zeroes <= parity_zeroes ^ 1;
                     end
                   end
                   else cycle_cnt_r <= cycle_cnt_r + 1;
-                end    
+                end
       5'b00100: begin //WAITING for bit transmission end state
                   if( sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF )
                   begin
@@ -206,23 +206,13 @@ end
 
 always @(posedge pclk_a or negedge rst_n or negedge preset_n_a) begin
   if ( !rst_n || !preset_n_a ) begin
-    // sync1_buffered_data_r <= 32'h0000_0000;
-    // sync1_config_r        <= 16'h0000;
-    // sync1_status_r        <= 16'h0000;
-
-    // apb_buffered_data_r   <= 32'h0000_0000;
-    // apb_config_r          <= 16'h0000;
-    // apb_status_r          <= 16'h0000;
-    
-        
     sync1_buffered_data_r <= 32'h0000_0000;
-    sync1_config_r        <= config_r;
-    sync1_status_r        <= status_r;
+    sync1_config_r        <= 16'h0000;
+    sync1_status_r        <= 16'h0000;
 
-    //Second stage sync
-    apb_buffered_data_r   <= sync1_buffered_data_r;
-    apb_config_r          <= sync1_config_r;
-    apb_status_r          <= sync1_status_r;
+    apb_buffered_data_r   <= 32'h0000_0000;
+    apb_config_r          <= 16'h0000;
+    apb_status_r          <= 16'h0000;
 
   end
   else begin
@@ -243,30 +233,38 @@ always @(posedge pclk_a or negedge rst_n or negedge preset_n_a) begin
 
                 if( pwrite_a ) begin // WRITE sequence
                   case( paddr_a )
-                    CONFIG_ADDRESS: begin
-                                      config_r[15:0] <= in_pdata_r[15:0];
-                                    end
-                    DATA_ADDRESS_WR:  begin
-                                        data_to_send_r[31:0] <= in_pdata_r[31:0];
-                                      end
-                    default:  begin
-                              end
-                  endcase            
+                    CONFIG_ADDRESS:
+                      begin
+                        config_r[15:0] <= in_pdata_r[15:0];
+                      end
+                    DATA_ADDRESS_WR:
+                      begin
+                        data_to_send_r[31:0] <= in_pdata_r[31:0];
+                      end
+                    default:
+                      begin
+
+                      end
+                  endcase
                 end
                 else begin //READ sequence
                   case( paddr_a )
-                    CONFIG_ADDRESS: begin
-                                      apb_muxed_out_r[31:0] <= { 16'b0000_0000_0000_0000, apb_config_r[15:0] };
-                                    end
-                    DATA_ADDRESS_R: begin
-                                      apb_muxed_out_r[31:0] <= apb_buffered_data_r[31:0];
-                                    end
-                    STATUS_ADDRESS: begin
-                                      apb_muxed_out_r[31:0] <= { 16'b0000_0000_0000_0000, apb_status_r[15:0] };
-                                    end
-                    default:  begin
-                                apb_muxed_out_r[31:0] <= 32'h0000_0000;
-                              end
+                    CONFIG_ADDRESS:
+                      begin
+                        apb_muxed_out_r[31:0] <= { 16'h0000, apb_config_r[15:0] };
+                      end
+                    DATA_ADDRESS_R:
+                      begin
+                        apb_muxed_out_r[31:0] <= apb_buffered_data_r[31:0];
+                      end
+                    STATUS_ADDRESS:
+                      begin
+                        apb_muxed_out_r[31:0] <= { 16'h0000, apb_status_r[15:0] };
+                      end
+                    default:
+                      begin
+                        apb_muxed_out_r[31:0] <= 32'h0000_0000;
+                      end
                   endcase
                 end
               end
@@ -289,4 +287,3 @@ end
 
 
 endmodule
-
