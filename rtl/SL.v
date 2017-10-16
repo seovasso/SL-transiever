@@ -41,7 +41,8 @@ parameter S0 = 5'b0_0000,
           S6 = 5'b0_0110,
           S7 = 5'b0_0111,
           S8 = 5'b0_1000,
-          S9 = 5'b0_1001;
+          S9 = 5'b0_1001,
+          S10= 5'b0_1010;
 
 reg [ 4:0] state_r, next_r; //RECEIVER MODE: 0 - idle, 1 - receiveing started, 1a - bit detected, 1b - no bit, 1c - stop bit
                     //TRANSMITTER MODE: 0 - idle, 1 - sending a word
@@ -65,7 +66,7 @@ reg [ 7:0] in_misc_r;
 // SL receiver related registers
 reg [15:0] sl0_tmp_r; //shift regs to temporary store input sequence
 reg [15:0] sl1_tmp_r;
-reg [31:0] shift_data_r;
+reg [32:0] shift_data_r;
 reg [ 5:0] cycle_cnt_r;
 reg [ 5:0] bit_cnt_r;
 
@@ -90,11 +91,11 @@ reg [15:0] apb_status_r;
 reg [31:0] apb_muxed_out_r;
 
 //Synchronisation registers to write to corresponding registers via APB
-reg [31:0] sync1_data_to_send_r;
-reg [15:0] sync3_config_r;
+reg [31:0] apb2sl_sync1_data_to_send_r;
+reg [15:0] apb2sl_sync1_config_r;
 
-reg [31:0] sync2_data_to_send_r;
-reg [15:0] sync2_config_r;
+reg [31:0] apb2sl_sync2_data_to_send_r;
+reg [15:0] apb2sl_sync2_config_r;
 
 
 
@@ -118,10 +119,10 @@ end
 
 
 
-always @(state_r or serial_line_ones_a or serial_line_zeroes_a or cycle_cnt_r or bit_cnt_r or bit_ended or parity_ones or parity_zeroes or config_r[PCE]) begin
-  next_r <= 'bx;
+always @(state_r or serial_line_ones_a or serial_line_zeroes_a or cycle_cnt_r or bit_cnt_r or bit_ended or parity_ones or parity_zeroes or config_r[PCE] or clk) begin
+  //next_r <= 'bx; //Multiple definition... should i use it for debug or not?
   case(state_r)
-    S0: if( bit_started && bit_cnt_r[5:0] == 6'b00_0000 )                                    next_r = S1; //S1 - wait state w/ flush
+    S0: if( bit_started && bit_cnt_r[5:0] == 6'b00_0000 )                                   next_r = S1; //S1 - wait state w/ flush
         else if( bit_started )                                                              next_r = S2; //S0 - wait state w/o flush
         else                                                                                next_r = S0;
     S1:                                                                                     next_r = S2;
@@ -130,21 +131,17 @@ always @(state_r or serial_line_ones_a or serial_line_zeroes_a or cycle_cnt_r or
         else if( !serial_line_ones_a &&  serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r = S4; //Go to ONE bit routine
         else if(  serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r = S5; //Go to ZERO bit routine
         else                                                                                next_r = S9; //Error condition, go to S9
-    S3: if( bit_cnt_r[5:0] == config_r[6:1] && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )    next_r = S6; //Go to data ok routine
-        else if( bit_cnt_r[5:0] == config_r[6:1] && config_r[PCE] &&  (parity_ones | parity_zeroes) ) next_r = S7;//Go to PEF routine
+    S3: if( bit_cnt_r[5:0] == config_r[6:1] + 1 && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )    next_r = S6; //Go to data ok routine
+        else if( bit_cnt_r[5:0] == config_r[6:1] + 1  && config_r[PCE] &&  (parity_ones | parity_zeroes) ) next_r = S7;//Go to PEF routine
         else                                                                                          next_r = S8; //Go to WLF routine
-    S4: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S4;
-    S5: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S5;
-    S6: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S6;
-    S7: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S7;
-    S8: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S8;
-    S9: if( bit_ended )  next_r = S0; //Go to waiting state
-        else             next_r = S9;
+    S4: next_r = S0;
+    S5: next_r = S0;
+    S6: next_r = S0;
+    S7: next_r = S0;
+    S8: next_r = S0;
+    S9: next_r = S0;
+    S10: if( bit_ended ) next_r = S0;
+         else            next_r = S10;
     default:             next_r = 'bx;
   endcase
 end
@@ -154,7 +151,7 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
   if( !rst_n | !preset_n_a ) begin
     sl0_tmp_r[15:0]       <= 16'hAAAA;
     sl1_tmp_r[15:0]       <= 16'hAAAA;
-    shift_data_r[31:0]    <= 0;
+    shift_data_r[32:0]    <= 0;
     cycle_cnt_r[5:0]      <= 0;
     bit_cnt_r[5:0]        <= 0;
     buffered_data_r[31:0] <= 0;
@@ -163,6 +160,13 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
     status_r[15:0]        <= 0;
     parity_zeroes         <= 0;
     parity_ones           <= 1;
+    apb2sl_sync1_data_to_send_r <= 32'h0000_0000;
+    apb2sl_sync1_config_r       <= 16'h0000;
+    apb2sl_sync2_data_to_send_r <= 32'h0000_0000;
+    apb2sl_sync2_config_r       <= 16'h0000;
+    next_r <= 0;
+
+
   end else begin
       sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
       sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
@@ -186,12 +190,12 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
 
             end
         S4: begin
-              shift_data_r <= ( shift_data_r >> 1 ) | ( 1 << config_r[6:1] - 1 ); //Store data in high bits of register
+              shift_data_r <= ( shift_data_r >> 1 ) | ( 1 << config_r[6:1] ); //Store data in high bits of register
               parity_ones  <= parity_ones ^ 1;
               bit_cnt_r    <= bit_cnt_r + 1;
             end
         S5: begin
-              shift_data_r  <= ( shift_data_r >> 1 ) & ~( 1 << config_r[6:1] - 1 );
+              shift_data_r  <= ( shift_data_r >> 1 ) & ~( 1 << config_r[6:1] );
               parity_zeroes <= parity_zeroes ^ 1;
               bit_cnt_r     <= bit_cnt_r + 1;
             end
@@ -207,7 +211,7 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[3]   <= 1; //word received
               status_r[4]   <= 0; //Dont care about parity value
               status_r[5]   <= 0; //no level errors on line
-              buffered_data_r <= shift_data_r;
+              buffered_data_r <= shift_data_r & ~( 1 << config_r[6:1] ); //Dont forget to wipeout parity bit
             end
         S7: begin
               parity_zeroes <= 0;
@@ -251,6 +255,9 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[5]   <= 1; // level errors on line
               buffered_data_r <= 32'h0000_0000;
             end
+        S10: begin
+                cycle_cnt_r <= 0;
+             end
       endcase
     end
 end

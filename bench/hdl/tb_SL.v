@@ -66,11 +66,11 @@ always #(tck/2) pclk <= ~pclk; // clocking device
 initial begin
   $dumpfile("sl_rt.vcd");
   $dumpvars(0, dut);
-  $monitor($stime,, reset,, clk,,, sl0, sl1); 
+  $monitor($stime,, reset,, clk,,, sl0, sl1);
 end
 
 // testbench actions
-initial 
+initial
 begin
   pclk     = 0;
   preset_n = 0;
@@ -80,7 +80,7 @@ begin
   pwrite   = 0;
 
 
-  clk   = 0; 
+  clk   = 0;
   reset = 0;
   sl0   = 1;
   sl1   = 1;
@@ -91,7 +91,7 @@ begin
 
 
 
-  ini_word = $urandom_range(0,16'hFFFF);
+  ini_word = 16'b1110_0011_1111_0001;
   word = ini_word;
   ei_data_sl0   = 0;
   ei_data_sl1   = 0;
