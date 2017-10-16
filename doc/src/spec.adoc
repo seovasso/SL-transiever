@@ -55,6 +55,26 @@ image::SL.png[title="Временная диаграмма SL-канала", ali
 .APB-связанные сигналы
 * [31:0]pdata_a - шина данных
 
+[[signals-frequency-realtions]]
+=== Тактирование сигналов
+
+.Указание на источник тактирования входных и выходных сигналов
+[cols="3*^", width=99%, options=header]
+|===
+|Сигнал                 |Направленность |Клоковый домен
+|rst_n                  |in             | async
+|serial_line_zeroes_a   |in             | async
+|serial_line_ones_a     |in             | async
+|preset_n_a             |in             | async
+|[7:0]paddr_a           |in             | pclk_a
+|psel_a                 |in             | pclk_a
+|penable_a              |in             | pclk_a
+|pwrite_a               |in             | pclk_a
+|[31:0]pdata_a          |inout as in    | pclk_a
+|[31:0]pdata_a          |inout as out   | clk
+|===
+
+
 [[programm-model]]
 == Программная модель
 Пользователю для работы доступно несколько регистров:
