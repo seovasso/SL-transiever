@@ -1,7 +1,5 @@
 = Спецификация приемопередатчика SL-канала
 ===========
-:Author:    Евгений Власов
-:Email:     <evgeniy@npofizika.ru>
 :Date:      13.10.2017
 :Revision:  0.1
 :toc:       right
