@@ -32,19 +32,31 @@ parameter DATA_ADDRESS_WR = 0'b0010;
 parameter DATA_ADDRESS_R  = 0'b0100;
 parameter STATUS_ADDRESS  = 0'b1000;
 
-parameter S0 = 5'b0_0000,
-          S1 = 5'b0_0001,
-          S2 = 5'b0_0010,
-          S3 = 5'b0_0011,
-          S4 = 5'b0_0100,
-          S5 = 5'b0_0101,
-          S6 = 5'b0_0110,
-          S7 = 5'b0_0111,
-          S8 = 5'b0_1000,
-          S9 = 5'b0_1001,
-          S10= 5'b0_1010;
+// parameter S0 = 5'b0_0000,
+//           S1 = 5'b0_0001,
+//           S2 = 5'b0_0010,
+//           S3 = 5'b0_0011,
+//           S4 = 5'b0_0100,
+//           S5 = 5'b0_0101,
+//           S6 = 5'b0_0110,
+//           S7 = 5'b0_0111,
+//           S8 = 5'b0_1000,
+//           S9 = 5'b0_1001,
+//           S10= 5'b0_1010;
 
-reg [ 4:0] state_r, next_r; //RECEIVER MODE: 0 - idle, 1 - receiveing started, 1a - bit detected, 1b - no bit, 1c - stop bit
+parameter BIT_WAIT_FLUSH    = 0, //S0
+          BIT_WAIT_NO_FLUSH = 1, //S1
+          BIT_DETECTED      = 2, //S2
+          STOP_BIT          = 3, //S3
+          ONE_BIT           = 4, //S4
+          ZERO_BIT          = 5, //S5
+          GOT_WORD          = 6, //S6
+          PAR_ERR           = 7, //S7
+          LEN_ERR           = 8, //S8
+          LEV_ERR           = 9, //S9
+          WAIT_BIT_END     = 10; //S10
+
+reg [ 10:0] state_r, next_r; //RECEIVER MODE: 0 - idle, 1 - receiveing started, 1a - bit detected, 1b - no bit, 1c - stop bit
                     //TRANSMITTER MODE: 0 - idle, 1 - sending a word
 
 
@@ -113,36 +125,40 @@ assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl
 
 
 always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
-  if( !rst_n || !preset_n_a ) state_r <= S0;
+  if( !rst_n || !preset_n_a ) begin
+    state_r <= 10'b0;
+    state_r[BIT_WAIT_FLUSH] <= 1'b1;
+  end
   else  state_r <= next_r;
 end
 
 
 
-always @(state_r or serial_line_ones_a or serial_line_zeroes_a or cycle_cnt_r or bit_cnt_r or bit_ended or parity_ones or parity_zeroes or config_r[PCE] or clk) begin
-  //next_r <= 'bx; //Multiple definition... should i use it for debug or not?
-  case(state_r)
-    S0: if( bit_started && bit_cnt_r[5:0] == 6'b00_0000 )                                   next_r = S1; //S1 - wait state w/ flush
-        else if( bit_started )                                                              next_r = S2; //S0 - wait state w/o flush
-        else                                                                                next_r = S0;
-    S1:                                                                                     next_r = S2;
-    S2: if( cycle_cnt_r < STROB_POS )                                                       next_r = S2; //
-        else if( !serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r = S3; //Go to STOP bit routine
-        else if( !serial_line_ones_a &&  serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r = S4; //Go to ONE bit routine
-        else if(  serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r = S5; //Go to ZERO bit routine
-        else                                                                                next_r = S9; //Error condition, go to S9
-    S3: if( bit_cnt_r[5:0] == config_r[6:1] + 1 && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )    next_r = S6; //Go to data ok routine
-        else if( bit_cnt_r[5:0] == config_r[6:1] + 1  && config_r[PCE] &&  (parity_ones | parity_zeroes) ) next_r = S7;//Go to PEF routine
-        else                                                                                          next_r = S8; //Go to WLF routine
-    S4: next_r = S0;
-    S5: next_r = S0;
-    S6: next_r = S0;
-    S7: next_r = S0;
-    S8: next_r = S0;
-    S9: next_r = S0;
-    S10: if( bit_ended ) next_r = S0;
-         else            next_r = S10;
-    default:             next_r = 'bx;
+//always @(state_r or serial_line_ones_a or serial_line_zeroes_a or cycle_cnt_r or bit_cnt_r or bit_ended or parity_ones or parity_zeroes or config_r[PCE] or clk) begin
+always @* begin
+  next_r = 10'b0;
+  case( 1'b1 ) // synopsys parallel_case
+  //were (state_r), but here we using reverse case to make sure it compare only one bit in a vector
+    state_r[   BIT_WAIT_FLUSH]: if( bit_started && bit_cnt_r[5:0] == 6'b00_0000 )                                   next_r[BIT_WAIT_NO_FLUSH] = 1'b1; //S1 - wait state w/ flush
+                                else if( bit_started )                                                              next_r[     BIT_DETECTED] = 1'b1; //S0 - wait state w/o flush
+                                else                                                                                next_r[   BIT_WAIT_FLUSH] = 1'b1;
+    state_r[BIT_WAIT_NO_FLUSH]:                                                                                     next_r[     BIT_DETECTED] = 1'b1;
+    state_r[     BIT_DETECTED]: if( cycle_cnt_r < STROB_POS )                                                       next_r[     BIT_DETECTED] = 1'b1; //
+                                else if( !serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[         STOP_BIT] = 1'b1; //Go to STOP bit routine
+                                else if( !serial_line_ones_a &&  serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[          ONE_BIT] = 1'b1; //Go to ONE bit routine
+                                else if(  serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[         ZERO_BIT] = 1'b1; //Go to ZERO bit routine
+                                else                                                                                next_r[          LEV_ERR] = 1'b1; //Error condition, go to S9
+    state_r[        STOP_BIT]: if( bit_cnt_r[5:0] == config_r[6:1] + 1 && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )      next_r[GOT_WORD] = 1'b1; //Go to data ok routine
+                               else if( bit_cnt_r[5:0] == config_r[6:1] + 1  && config_r[PCE] &&  (parity_ones | parity_zeroes) )  next_r[ PAR_ERR] = 1'b1;//Go to PEF routine
+                               else                                                                                                next_r[ LEN_ERR] = 1'b1; //Go to WLF routine
+    state_r[         ONE_BIT]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[        ZERO_BIT]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[        GOT_WORD]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[         PAR_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[         LEN_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[         LEV_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[    WAIT_BIT_END]: if( bit_ended ) next_r[BIT_WAIT_FLUSH] = 1'b1;
+                                 else          next_r[  WAIT_BIT_END] = 1'b1;
   endcase
 end
 
@@ -171,14 +187,15 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
       sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
       sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
 
-      case(next_r)
-        S0: begin
+    //  case(next_r)
+      case( 1'b1 ) // synopsys parallel_case
+        next_r[BIT_WAIT_FLUSH], next_r[STOP_BIT], next_r[WAIT_BIT_END]: begin
               cycle_cnt_r <= 0;
             end
-        S1: begin //wait state with flush
+        next_r[BIT_WAIT_NO_FLUSH]: begin //wait state with flush
               status_r[15:0] <= 0;
             end
-        S2: begin
+          next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
               status_r[0] <= 0; //word length ok
               status_r[1] <= 1; //receiving process on
@@ -186,20 +203,20 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[4] <= 0; //no parity error atm
               status_r[5] <= 0; //no level errors on line
             end
-        S3: begin
-
-            end
-        S4: begin
+        // S3: begin
+        //
+        //     end
+        next_r[ONE_BIT]: begin
               shift_data_r <= ( shift_data_r >> 1 ) | ( 1 << config_r[6:1] ); //Store data in high bits of register
               parity_ones  <= parity_ones ^ 1;
               bit_cnt_r    <= bit_cnt_r + 1;
             end
-        S5: begin
+        next_r[ZERO_BIT]: begin
               shift_data_r  <= ( shift_data_r >> 1 ) & ~( 1 << config_r[6:1] );
               parity_zeroes <= parity_zeroes ^ 1;
               bit_cnt_r     <= bit_cnt_r + 1;
             end
-        S6: begin //DATA recevied correctly
+        next_r[GOT_WORD]: begin //DATA recevied correctly
               parity_zeroes <= 0;
               parity_ones   <= 1;
               shift_data_r  <= 0;
@@ -213,7 +230,7 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[5]   <= 0; //no level errors on line
               buffered_data_r <= shift_data_r & ~( 1 << config_r[6:1] ); //Dont forget to wipeout parity bit
             end
-        S7: begin
+        next_r[PAR_ERR]: begin
               parity_zeroes <= 0;
               parity_ones   <= 1;
               shift_data_r  <= 0;
@@ -227,7 +244,7 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[5]   <= 0; //no level errors on line
               buffered_data_r <= 32'h0000_0000;
             end
-        S8: begin
+        next_r[LEN_ERR]: begin
               parity_zeroes <= 0;
               parity_ones   <= 1;
               shift_data_r  <= 0;
@@ -241,7 +258,7 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[5]   <= 0; //no level errors on line
               buffered_data_r <= 32'h0000_0000;
             end
-        S9: begin
+        next_r[LEV_ERR]: begin
               parity_zeroes <= 0;
               parity_ones   <= 1;
               shift_data_r  <= 0;
@@ -255,9 +272,6 @@ always @(posedge clk or negedge rst_n or negedge preset_n_a) begin
               status_r[5]   <= 1; // level errors on line
               buffered_data_r <= 32'h0000_0000;
             end
-        S10: begin
-                cycle_cnt_r <= 0;
-             end
       endcase
     end
 end
