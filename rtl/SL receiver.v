@@ -9,10 +9,10 @@ module SL_receiver (
 
   //Output data signals
   output wire [15:0]status_w,
-  output wire [31:0]data_w
+  output wire [31:0]data_w,
 
   //Inout signals
-  inout  reg  [15:0]config_r,
+  input  wire  [15:0]config_w
     );
 
 parameter STROB_POS = 8,
@@ -42,7 +42,7 @@ reg [31:0] buffered_data_r;        //last got SL word
 reg [ 5:0] cycle_cnt_r, bit_cnt_r; //misc counters
 reg parity_ones, parity_zeroes;    //parity registers
 
-//reg [15:0] config_r;
+reg [15:0] config_r;
 parameter PCE  = 0, // parity check enable
           BQL  = 1, // bit quantity low bit
           BQH  = 6, // bit quantity high bit
@@ -65,7 +65,7 @@ assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl
 
 
 always @(posedge clk, negedge rst_n) begin
-  if( !rst_n || !preset_n_a ) begin
+  if( !rst_n ) begin
     state_r <= 10'b0;
     state_r[BIT_WAIT_FLUSH] <= 1'b1;
   end

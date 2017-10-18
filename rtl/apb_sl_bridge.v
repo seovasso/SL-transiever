@@ -1,4 +1,4 @@
-module SL_receiver (
+module APB_SL_bridge (
   //Common signals
   input wire rst_n,
   input wire clk, //16MHz
@@ -27,7 +27,7 @@ module SL_receiver (
   input wire [15:0] config_a,
   input wire [15:0] status_a,
   input wire [31:0] rx_data_a,
-  output wire [31:0] tx_data_a,
+  output wire [31:0] tx_data_a
     );
 
 parameter STROB_POS = 8,
@@ -36,7 +36,10 @@ parameter STROB_POS = 8,
           DATA_ADDRESS_R  = 0'b0100,
           STATUS_ADDRESS  = 0'b1000;
 
-
+reg [15:0] status_r;
+reg [15:0] config_r;
+reg [31:0] buffered_data_r;        //last got SL word
+reg [31:0] data_to_send_r;        //last got SL word
 
 
 //APB resynchronisation registers

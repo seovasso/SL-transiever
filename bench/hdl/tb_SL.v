@@ -7,6 +7,8 @@ reg clk;
 parameter tck = 10; // clock tick
 reg sl0;
 reg sl1;
+reg sl0_o;
+reg sl1_o;
 reg pclk;
 reg preset_n;
 reg [ 7:0] paddr;
@@ -14,9 +16,14 @@ reg psel; //Cant work only with address checking cause of bi-directional data bu
 reg penable;
 reg pwrite;
 wire [31:0] pdata;
+wire [15:0]status_w;
+wire  [15:0]config_w;
+reg send_now;
+reg [31:0]send_data;
 
+SL_receiver dut_rx(reset, clk, sl0, sl1, status_w, pdata, config_w);
+SL_transmitter dut_tx(reset, clk, sl0_o, sl1_o, send_data, send_now);
 
-SL_transiever dut(reset, clk, sl0, sl1, clk, reset, paddr, psel, penable, pwrite, pdata);
 
 //Error injection parameters
 reg ei_data_sl0;
@@ -64,10 +71,21 @@ always #(tck/2) clk <= ~clk; // clocking device
 always #(tck/2) pclk <= ~pclk; // clocking device
 
 initial begin
-  $dumpfile("sl_rt.vcd");
-  $dumpvars(0, dut);
-  $monitor($stime,, reset,, clk,,, sl0, sl1);
+  //$dumpfile("sl_rt.vcd");
+  //$dumpvars(0, dut);
+  //$monitor($stime,, reset,, clk,,, sl0, sl1);
 end
+
+initial begin
+    send_now = 0;
+    #(tck*20);
+    send_now = 1;
+    #(tck*10);
+    send_now = 0;
+end
+
+
+
 
 // testbench actions
 initial
@@ -84,6 +102,7 @@ begin
   reset = 0;
   sl0   = 1;
   sl1   = 1;
+  send_data = 16'b1110_0011_1111_0001;
   #(tck*10);
   reset = 1;
   preset_n = 1;
