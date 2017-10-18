@@ -10,9 +10,11 @@ module SL_receiver (
   //Output data signals
   output wire [15:0]status_w,
   output wire [31:0]data_w,
+  output wire [15:0]r_config_w;
 
   //Inout signals
-  input  wire  [15:0]config_w
+  input  wire [15:0]wr_config_w
+
     );
 
 parameter STROB_POS = 8,

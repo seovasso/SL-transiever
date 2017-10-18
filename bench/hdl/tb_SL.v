@@ -20,10 +20,12 @@ wire [15:0]status_w;
 wire  [15:0]config_w;
 reg send_now;
 reg [31:0]send_data;
+reg [15:0]config_r;
 
-SL_receiver dut_rx(reset, clk, sl0, sl1, status_w, pdata, config_w);
-SL_transmitter dut_tx(reset, clk, sl0_o, sl1_o, send_data, send_now);
+SL_receiver dut_rx(reset, clk, sl0, sl1, status_w, pdata, config_w, config_w);
+SL_transmitter dut_tx(reset, clk, sl0_o, sl1_o, send_data, send_now, config_w, config_w, status_w[0]);
 
+assign config_w = config_r;
 
 //Error injection parameters
 reg ei_data_sl0;
@@ -96,7 +98,7 @@ begin
   psel     = 0;
   penable  = 0;
   pwrite   = 0;
-
+  config_r = 16'b0;
 
   clk   = 0;
   reset = 0;
