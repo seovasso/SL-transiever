@@ -1,15 +1,1 @@
-D:/RISC-V/SL-transiever/bench/hdl/tb_SL.v {1 {vlog -work work -vopt -sv -stats=none D:/RISC-V/SL-transiever/bench/hdl/tb_SL.v
-Model Technology ModelSim SE-64 vlog 10.5 Compiler 2016.02 Feb 13 2016
--- Compiling module sl_rt_tb
 
-Top level modules:
-	sl_rt_tb
-
-} {} {}} D:/RISC-V/SL-transiever/rtl/SL.v {1 {vlog -work work -vopt -stats=none D:/RISC-V/SL-transiever/rtl/SL.v
-Model Technology ModelSim SE-64 vlog 10.5 Compiler 2016.02 Feb 13 2016
--- Compiling module SL_transiever
-
-Top level modules:
-	SL_transiever
-
-} {} {}}
