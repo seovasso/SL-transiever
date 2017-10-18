@@ -6,15 +6,12 @@ module SL_receiver (
   // SL related signals
   input wire serial_line_zeroes_a,
   input wire serial_line_ones_a,
+  input  wire [15:0]wr_config_w,
 
   //Output data signals
   output wire [15:0]status_w,
   output wire [31:0]data_w,
-  output wire [15:0]r_config_w;
-
-  //Inout signals
-  input  wire [15:0]wr_config_w
-
+  output wire [15:0]r_config_w
     );
 
 parameter STROB_POS = 8,
@@ -129,7 +126,7 @@ always @(posedge clk, negedge rst_n) begin
         next_r[BIT_WAIT_NO_FLUSH]: begin
               status_r[15:0] <= 0;
             end
-          next_r[BIT_DETECTED]: begin
+        next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
               status_r[WLC] <= 0;
               status_r[WRP] <= 1;

@@ -55,18 +55,6 @@ reg [ 7:0] in_misc_r;
 
 //assign {pprot, psel, penable, pwrite, pstrb[3:0]} = in_misc_r[7:0];
 
-parameter PCE  = 0, // parity check enable
-          BQL  = 1, // bit quantity low bit
-          BQH  = 6, // bit quantity high bit
-          MODE = 7, // rx tx mode
-          IRQM = 8; //interrupt request mode
-
-parameter WLC = 0, //word length check result
-          WRP = 1, //word receiving status
-          WRF = 3, //word received flag
-          PEF = 4, //parity error flag
-          LEF = 5; //level error on line flag
-
 //Synchronisation registers to read from corresponding registers via APB
 reg [31:0] sync1_buffered_data_r;
 reg [15:0] sync1_config_r;
