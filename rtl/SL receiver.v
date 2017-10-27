@@ -6,7 +6,8 @@ module SL_receiver (
   // SL related signals
   input wire serial_line_zeroes_a,
   input wire serial_line_ones_a,
-  input  wire [15:0]wr_config_w,
+  input wire [15:0]wr_config_w,
+  input wire       wr_enable, //signal enable write to config_r
 
   //Output data signals
   output wire [15:0]status_w,
@@ -56,12 +57,15 @@ parameter WLC = 0, //word length check result
           LEF = 5; //level error on line flag
 
 wire bit_ended, bit_started;
+wire [15:0] config_r_next; //change config_r wire
 
+assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
 assign status_w = status_r;
+assign r_config_w=config_r;
 assign data_w   = buffered_data_r;
 assign bit_ended   = (sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF) ? 1 : 0;
 assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[15:12] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
-
+assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd8)? wr_config_w: config_r;
 
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
@@ -109,7 +113,7 @@ always @(posedge clk, negedge rst_n) begin
     cycle_cnt_r[5:0]      <= 0;
     bit_cnt_r[5:0]        <= 0;
     buffered_data_r[31:0] <= 0;
-    config_r[15:0]        <= 16'h0020;
+    config_r[15:0]        <= 16'h0010;
     status_r[15:0]        <= 0;
     parity_zeroes         <= 0;
     parity_ones           <= 1;
@@ -120,7 +124,11 @@ always @(posedge clk, negedge rst_n) begin
       sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
 
       case( 1'b1 ) // synopsys parallel_case
-        next_r[BIT_WAIT_FLUSH], next_r[STOP_BIT], next_r[WAIT_BIT_END]: begin
+      next_r[BIT_WAIT_FLUSH]: begin
+            cycle_cnt_r <= 0;
+            config_r<=config_r_next;
+          end
+        next_r[STOP_BIT], next_r[WAIT_BIT_END]: begin
               cycle_cnt_r <= 0;
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
