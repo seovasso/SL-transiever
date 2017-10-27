@@ -7,6 +7,7 @@ module SlRecieverTb();
      logic        clk;
      logic        inSl0;
      logic        inSl1;
+     logic        wr_enable;
      logic [15:0] wr_config_w;
      logic [15:0] r_config_w;
      logic [31:0] data_w;
@@ -20,18 +21,18 @@ task slTransaction;
           logic        parSl0;
           logic        parSl1;
    begin
-   parSl0 =1'b1;
-   parSl1 =1'b0;
+   parSl0 =1'b0;
+   parSl1 =1'b1;
      for (int i=0; i < mesLength; i=i+1) begin
       if(!mess[i])begin
-           parSl0 = ~parSl0;
+           parSl0 = parSl0^1;
            #(SlClkLength/2) inSl0=1;
            inSl0=0;
            #(SlClkLength);
            inSl0=1;
            #(SlClkLength/2);
       end else begin
-          parSl1 = ~parSl1;
+          parSl1 = parSl1^1;
           #(SlClkLength/2);
           inSl1=1;
           inSl1=0;
@@ -71,7 +72,9 @@ endtask
         .data_w                     (data_w),
         .wr_config_w                (wr_config_w),
         .status_w                   (status_w),
-        .clk(clk)
+        .clk                        (clk),
+        .wr_enable                  (wr_enable)
+
     );
  bit [31:0] mes;
  initial forever #(clkPeriod/2)clk=~clk;
@@ -80,7 +83,8 @@ logic curTest,allTest;
         clk=0;
         curTest=0;
         allTest=1;
-        wr_config_w=16'h000e;
+        wr_enable=0;
+        wr_config_w=16'h0014;
         inSl0 = 1;
         inSl1 = 1;
         rst_n = 1;
@@ -89,21 +93,28 @@ logic curTest,allTest;
         #30
         rst_n = 1;
         #100
-
-        $display("Test #1: 1 correct message l=8");
-        //mes=$urandom_range(255,0);
-        mes=$urandom();
-        slTransaction(mes,32,1);
-        if (mes==data_w)begin
-          curTest=1;
-        end else  begin
-          curTest=0;
-          allTest=0;
+        for (int l=8;l<=32;l=l+2)begin
+          //int l = 8;// $urandom_range(16,4)*2;
+          $display("Test #1.%в: 1 correct message l=%d",l,l);
+          mes=$urandom_range(2**l-1,0);
+          wr_config_w=(l<<1);
+          wr_enable=1;
+          #(clkPeriod);
+          wr_enable=0;
+          wr_config_w=16'h0000;
+          slTransaction(mes,l,1);
+          if (mes == data_w && status_w==16'b1000 )begin
+            curTest=1;
+          end else  begin
+            curTest=0;
+            allTest=0;
+          end
+          if(curTest) begin
+            $display("test passed");
+          end else begin
+            $display("test failed");
+          end
         end
-        if(data_w==mes) begin
-          $display("test passed");
-        end else $display("test failed");
-
         // bitCount=5'd14;
         //
         // $display("Test #1: 1 correct message l=15");
