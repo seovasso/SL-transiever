@@ -13,7 +13,21 @@ module SlRecieverTb();
      logic [31:0] data_w;
      logic [15:0] status_w;
 
-
+task testMassage;//конфигуриррует приемник и отправляет SL посылку
+         input int mesLength;//длинна сообщения
+         input int confLength;//сконфигурированая длинна
+         input bit PCE_on;//включить контроль четности
+         input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
+  begin
+  mes=$urandom_range(2**mesLength-1,0);
+  wr_config_w=(confLength<<1)|PCE_on;//задаем конфигруацию
+  wr_enable=1;
+  #(clkPeriod);
+  wr_enable=0;
+  wr_config_w=16'h0000;
+  slTransaction(mes,mesLength,parityRight);
+  end
+endtask
 task slTransaction;
           input bit [31:0] mess;//отправляемое сообщение
           input int mesLength;//длинна сообщения
@@ -21,8 +35,8 @@ task slTransaction;
           logic        parSl0;
           logic        parSl1;
    begin
-   parSl0 =1'b0;
-   parSl1 =1'b1;
+   parSl0 =1'b1;
+   parSl1 =1'b0;
      for (int i=0; i < mesLength; i=i+1) begin
       if(!mess[i])begin
            parSl0 = parSl0^1;
@@ -77,6 +91,7 @@ endtask
 
     );
  bit [31:0] mes;
+ bit [31:0] lastCorrMess;
  initial forever #(clkPeriod/2)clk=~clk;
 logic curTest,allTest;
     initial begin
@@ -93,16 +108,43 @@ logic curTest,allTest;
         #30
         rst_n = 1;
         #100
-        for (int l=8;l<=32;l=l+2)begin
-          //int l = 8;// $urandom_range(16,4)*2;
-          $display("Test #1.%в: 1 correct message l=%d",l,l);
-          mes=$urandom_range(2**l-1,0);
-          wr_config_w=(l<<1);
-          wr_enable=1;
-          #(clkPeriod);
-          wr_enable=0;
-          wr_config_w=16'h0000;
-          slTransaction(mes,l,1);
+        for (int i=1;i<=3;i=i+1)begin
+          int l = 8+$urandom_range(1,16)*2;
+          $display("Test #1.%d.1: 1 correct message width PCE=0 l=%d",i,l);
+          testMassage(l,l,0,1);
+          if (mes == data_w && status_w==16'b1000 )begin
+            curTest=1;
+          end else  begin
+            curTest=0;
+            allTest=0;
+          end
+
+          if(curTest) begin
+            $display("test passed");
+          end else begin
+            $display("test failed");
+          end
+
+          $display("Test #1.%d.2 : 1 correct message with PCE=1 l=%d",i,l);
+          testMassage(l,l,1,1);
+
+          if (mes == data_w && status_w==16'b1000 )begin
+            curTest=1;
+          end else  begin
+            curTest=0;
+            allTest=0;
+          end
+
+          if(curTest) begin
+            $display("test passed");
+          end else begin
+            $display("test failed");
+          end
+
+        //  int messCount = $urandom_range(4,10);
+          $display("Test #2.%d:2.2 : %d correct message with PCE=1 l=%d",i,5,l);
+          for (int iterator = 0; iterator < 5; iterator++)
+              testMassage(l,l,1,1);
           if (mes == data_w && status_w==16'b1000 )begin
             curTest=1;
           end else  begin
@@ -114,27 +156,110 @@ logic curTest,allTest;
           end else begin
             $display("test failed");
           end
+
+
+        $display("Test 3.%d:2 : 5 correct message then 1 incorrect then 5 correct  l=%d",i,l);
+        for (int iterator = 0; iterator < 5; iterator++)
+            testMassage(l,l,1,1);
+
+            testMassage(l+2,l,1,1);//некорректное
+            for (int iterator = 0; iterator < 5; iterator++)
+                testMassage(l,l,1,1);
+        if (mes == data_w && status_w==16'b1000 )begin
+          curTest=1;
+        end else  begin
+          curTest=0;
+          allTest=0;
         end
-        // bitCount=5'd14;
-        //
-        // $display("Test #1: 1 correct message l=15");
-        // mes=$urandom();
-        // slTransaction(mes,16,1);
-        // if ((data [31:17] == mes[14:0]) && bitCountValid && wordReady)begin
-        //   curTest=1;
-        // end else  begin
-        //   curTest=0;
-        //   allTest=0;
-        // end
-        // if(curTest) begin
-        //   $display("test passed");
-        // end else $display("test failed");
+        if(curTest) begin
+          $display("test passed");
+        end else begin
+          $display("test failed");
+        end
+
+        $display("Test 4.%d:2 : 5 incorrect message  l=%d",i,l);
+
+        for (int iterator = 0; iterator < 5; iterator++) begin
+        testMassage(l+$urandom_range(1,3)*2,l,1,1);//некорректное
+        end
+        if (status_w==16'b1001 )begin
+          curTest=1;
+        end else  begin
+          curTest=0;
+          allTest=0;
+        end
+        if(curTest) begin
+          $display("test passed");
+        end else begin
+          $display("test failed");
+        end
 
 
+      $display("Test 5.a.2. %d   incorrect message L>N  l=%d",i,l);
+
+      testMassage(l+$urandom_range(1,3)*2,l,1,1);//некорректное сообщение
+      if (status_w == 16'b1001) begin
+        curTest=1;
+      end else  begin
+        curTest=0;
+        allTest=0;
+      end
+      if(curTest) begin
+        $display("test passed");
+      end else begin
+        $display("test failed");
+      end
+
+
+    $display( "Test 5.a.1. %d  : incorrect message L<N  l=%d", i, l );
+    testMassage(l-$urandom_range(1,3)*2,l,1,1);//некорректное сообщение
+    if (status_w==16'b1001 )begin
+      curTest=1;
+    end else  begin
+      curTest=0;
+      allTest=0;
+    end
+    if(curTest) begin
+      $display("test passed");
+    end else begin
+      $display("test failed");
+    end
+
+    $display( "Test 5.b.1. %d  :  message with parity error l=%d PCE=1", i, l );
+    testMassage(l,l,1,1);//корректное сообщение
+    lastCorrMess=mes;
+    testMassage(l,l,1,0);//некорректное сообщение
+    if (status_w==16'b11000 && lastCorrMess == 0)begin
+      curTest=1;
+    end else  begin
+      curTest=0;
+      allTest=0;
+    end
+    if(curTest) begin
+      $display("test passed");
+    end else begin
+      $display("test failed");
+    end
+
+    $display( "Test 5.b.2. %d  :  message with parity error l=%d PCE=0", i, l );
+    testMassage(l,l,0,0);//некорректное сообщение
+    if (status_w==16'b01000 && mes == data_w)begin
+      curTest=1;
+    end else  begin
+      curTest=0;
+      allTest=0;
+    end
+    if(curTest) begin
+      $display("test passed");
+    end else begin
+      $display("test failed");
+    end
+  end
 
       if(allTest) begin
         $display("All test passed");
        end else $display("Some tests failed");
+       $stop;
     end
 
 
