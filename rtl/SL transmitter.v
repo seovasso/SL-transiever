@@ -10,8 +10,8 @@ module SL_transmitter (
   // Data and command from master
   input wire [31:0] data_a,
   input wire send_imm,
-  input wire  [7:0]wr_config_w,
-  output wire [7:0]r_config_w,
+  input wire  [9:0]wr_config_w,
+  output wire [9:0]r_config_w,
   output wire send_in_process
     );
 
@@ -29,26 +29,51 @@ parameter IDLE        = 0,
 reg [31:0] txdata_r;
 reg [ 7:0] state_r;
 reg [ 7:0] next_r;
-reg [ 7:0] config_r;
+reg [ 9:0] config_r;
 reg [ 5:0] bitcnt_r;
+reg [ 4:0] freq_devide_cnt_r;
 reg parity_r;
 reg sl0_r;
 reg sl1_r;
 reg status_r;
+reg send_now;
 
-
-
+reg [4:0] freq_devide_cnt_max ;
+wire[4:0] freq_devide_cnt_next;
 
 
 // Configuration register bits
 parameter BQL  = 0, // bit quantity low bit
           BQH  = 5, // bit quantity high bit, BQH-BQL should be 5!
-          IRQM = 6; // interrupt request mode
+          IRQM = 6, // interrupt request mode
+          FQL  = 7, // frequency mode low  bit
+          FQH  = 9; // frequency mode high bit
 
 assign SL0 = sl0_r;
 assign SL1 = sl1_r;
+assign r_config_w = config_r;
 assign send_in_process = status_r;
+//assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
 
+assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[0])? freq_devide_cnt_r+6'b1 : 6'd0;
+
+always @ ( * ) begin // frequency devider
+  case (config_r[FQH:FQL])
+  3'd0:   freq_devide_cnt_max = 5'b00001;//8МHz
+  3'd1:   freq_devide_cnt_max = 5'b00011;//4МHz
+  3'd2:   freq_devide_cnt_max = 5'b00111;//2МHz
+  3'd3:   freq_devide_cnt_max = 5'b01111;//1МHz
+  3'd4:   freq_devide_cnt_max = 5'b11111;//0.5МHz
+  default:freq_devide_cnt_max = 5'b00001;//0.5МHz
+  endcase
+end
+
+always @( posedge clk, negedge rst_n ) begin // frequency devider
+  if( !rst_n ) begin
+    freq_devide_cnt_r      <= 5'b0;
+  end
+  else  freq_devide_cnt_r <= freq_devide_cnt_next;
+end
 
 always @( posedge clk, negedge rst_n ) begin
   if( !rst_n ) begin
@@ -59,7 +84,6 @@ always @( posedge clk, negedge rst_n ) begin
 end
 
 
-
 always @* begin
   next_r = 8'b0;
   case( 1'b1 ) // synopsys parallel_case
@@ -67,18 +91,30 @@ always @* begin
     state_r[       IDLE]: if( send_imm && !status_r )                            next_r[ START_SEND] = 1'b1;
                           else                                                   next_r[       IDLE] = 1'b1;
     state_r[ START_SEND]:
-      if( txdata_r[bitcnt_r] )                                                   next_r[        ONE] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[ START_SEND] = 1'b1;
+      else if( txdata_r[bitcnt_r] )                                              next_r[        ONE] = 1'b1;
       else                                                                       next_r[       ZERO] = 1'b1;
-    state_r[        ONE]:                                                        next_r[ BIT_ENDING] = 1'b1;
-    state_r[       ZERO]:                                                        next_r[ BIT_ENDING] = 1'b1;
-    state_r[     PARITY]:                                                        next_r[ BIT_ENDING] = 1'b1;
+    state_r[        ONE]:
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[        ONE] = 1'b1;
+      else                                                                       next_r[ BIT_ENDING] = 1'b1;
+    state_r[       ZERO]:
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[       ZERO] = 1'b1;
+      else                                                                       next_r[ BIT_ENDING] = 1'b1;
+    state_r[     PARITY]:
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[     PARITY] = 1'b1;
+      else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[ BIT_ENDING]:
-      if(      txdata_r[bitcnt_r] == 1'b1 && bitcnt_r[5:0] < config_r[BQH:BQL])  next_r[        ONE] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[ BIT_ENDING] = 1'b1;
+      else if( txdata_r[bitcnt_r] == 1'b1 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[        ONE] = 1'b1;
       else if( txdata_r[bitcnt_r] == 1'b0 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[       ZERO] = 1'b1;
       else if( bitcnt_r[5:0] == config_r[BQH:BQL])                               next_r[     PARITY] = 1'b1;
       else                                                                       next_r[       STOP] = 1'b1;
-    state_r       [STOP]:                                                        next_r[WORD_ENDING] = 1'b1;
-    state_r[WORD_ENDING]:                                                        next_r[       IDLE] = 1'b1;
+    state_r       [STOP]:
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[       STOP] = 1'b1;
+      else                                                                       next_r[WORD_ENDING] = 1'b1;
+    state_r[WORD_ENDING]:
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[WORD_ENDING] = 1'b1;
+      else                                                                       next_r[       IDLE] = 1'b1;
   endcase
 end
 
@@ -87,7 +123,7 @@ always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
     bitcnt_r[ 5:0] <= 0;
-    config_r[ 7:0] <= 16'h0020;
+    config_r[ 9:0] <= 10'b0100001000;
     status_r       <= 0;
     parity_r       <= 0;
     next_r         <= 0;
