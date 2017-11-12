@@ -93,7 +93,7 @@ endtask
  bit [31:0] mes;
  bit [31:0] lastCorrMess;
  initial forever #(clkPeriod/2)clk=~clk;
-logic curTest,allTest;
+ logic curTest,allTest;
     initial begin
         clk=0;
         curTest=0;
