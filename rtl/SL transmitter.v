@@ -11,6 +11,7 @@ module SL_transmitter (
   input wire [31:0] data_a,
   input wire send_imm,
   input wire  [9:0]wr_config_w,
+  input wire wr_config_enable,
   output wire [9:0]r_config_w,
   output wire send_in_process
     );
@@ -40,8 +41,9 @@ reg send_now;
 
 reg [4:0] freq_devide_cnt_max ;
 wire[4:0] freq_devide_cnt_next;
-
-
+wire[9:0] config_r_next; //Configuration register next value
+wire[9:0] data_r_next; //Data register next value
+wire[5:0] bitcnt_r_next;
 // Configuration register bits
 parameter BQL  = 0, // bit quantity low bit
           BQH  = 5, // bit quantity high bit, BQH-BQL should be 5!
@@ -56,6 +58,7 @@ assign send_in_process = status_r;
 //assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
 
 assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[0])? freq_devide_cnt_r+6'b1 : 6'd0;
+assign bitcnt_r_next = (freq_devide_cnt_r == freq_devide_cnt_max ? bitcnt_r+1: bitcnt_r);
 
 always @ ( * ) begin // frequency devider
   case (config_r[FQH:FQL])
@@ -91,33 +94,34 @@ always @* begin
     state_r[       IDLE]: if( send_imm && !status_r )                            next_r[ START_SEND] = 1'b1;
                           else                                                   next_r[       IDLE] = 1'b1;
     state_r[ START_SEND]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[ START_SEND] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[ START_SEND] = 1'b1;
       else if( txdata_r[bitcnt_r] )                                              next_r[        ONE] = 1'b1;
       else                                                                       next_r[       ZERO] = 1'b1;
     state_r[        ONE]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[        ONE] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[        ONE] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[       ZERO]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[       ZERO] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[       ZERO] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[     PARITY]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[     PARITY] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[     PARITY] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[ BIT_ENDING]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[ BIT_ENDING] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[ BIT_ENDING] = 1'b1;
       else if( txdata_r[bitcnt_r] == 1'b1 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[        ONE] = 1'b1;
       else if( txdata_r[bitcnt_r] == 1'b0 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[       ZERO] = 1'b1;
       else if( bitcnt_r[5:0] == config_r[BQH:BQL])                               next_r[     PARITY] = 1'b1;
       else                                                                       next_r[       STOP] = 1'b1;
     state_r       [STOP]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[       STOP] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[       STOP] = 1'b1;
       else                                                                       next_r[WORD_ENDING] = 1'b1;
     state_r[WORD_ENDING]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                            next_r[WORD_ENDING] = 1'b1;
+      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[WORD_ENDING] = 1'b1;
       else                                                                       next_r[       IDLE] = 1'b1;
   endcase
 end
 
+assign config_r_next = (wr_config_enable)? wr_config_w: config_r;
 
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
@@ -137,6 +141,7 @@ always @(posedge clk, negedge rst_n) begin
                                 txdata_r <= data_a;
                                 bitcnt_r <= 0;
                                 status_r <= 1'b0;
+                                config_r<=config_r_next;
                               end
         next_r[  START_SEND]: begin
                                 send_now <= 1'b0;
@@ -157,7 +162,7 @@ always @(posedge clk, negedge rst_n) begin
                                 sl1_r <=   parity_r;
                               end
         next_r[ BIT_ENDING]:  begin
-                                bitcnt_r <= bitcnt_r + 1;
+                                bitcnt_r <= bitcnt_r_next;
                                 sl1_r    <= 1'b1;
                                 sl0_r    <= 1'b1;
                               end
