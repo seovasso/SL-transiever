@@ -35,7 +35,7 @@ logic parSl0;//контроль четности sl0
 logic parSl1;//конроль четности sl1
 logic [32:0] data;//сдвиговый регистр
 logic paritySumm;
-assign paritySumm=parSl1&parSl0;
+assign paritySumm=parSl1 & ~parSl0;
 always_ff @(negedge sl0, negedge sl1, negedge rst_n) begin
     if (!rst_n) begin
 
@@ -45,7 +45,7 @@ always_ff @(negedge sl0, negedge sl1, negedge rst_n) begin
         wordInProces <= 0;
         dataOut <= 0;
         parityValid <= 0;
-        parSl0 <= 1'b1;
+        parSl0 <= 1'b0;
         parSl1 <= 1'b0;
     end else begin
             case({sl0,sl1})
@@ -75,7 +75,7 @@ always_ff @(negedge sl0, negedge sl1, negedge rst_n) begin
                  wordInProces<=0;
                  parityValid <= paritySumm;
                  dataOut<= data[31:0]>>(32-counter+1);
-                 parSl0 <= 1'b1;
+                 parSl0 <= 1'b0;
                  parSl1 <= 1'b0;
                  counter <=0;
                  end
