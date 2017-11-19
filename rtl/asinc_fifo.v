@@ -46,7 +46,7 @@ wire rd_empty_val;
 assign rd_empty_val = rd_gray_next == wr_ptr_sync;
 
 always @(posedge rd_clk or negedge rd_rst_n)
-  if (!rd_rst_n) rd_empty <= 0 ;
+  if (!rd_rst_n) rd_empty <= 1 ;
   else rd_empty <= rd_empty_val;
 
 
@@ -62,7 +62,7 @@ always @(posedge rd_clk or negedge rd_rst_n)
 
   always @(posedge wr_clk or negedge wr_rst_n)
     if (!wr_rst_n) {wr_ptr, wr_bin_cnt} <= 0;
-    else          {wr_ptr, wr_bin_cnt} <= {wr_gray_next, wr_bin_cnt_next};
+    else           {wr_ptr, wr_bin_cnt} <= {wr_gray_next, wr_bin_cnt_next};
 
   assign wr_addr = wr_bin_cnt [ADDR_SIZE-1:0];
 
