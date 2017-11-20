@@ -2,9 +2,9 @@
 
 module AsincFifoTb();
   parameter CLK_PERIOD   = 10;
-  parameter CLK_PERIOD = 3;
-  parameter FIFO_DATA_SIZE = 32;
-  parameter addrSize = 3;
+  parameter CLK_TIME_DELAY= 0;
+  parameter FIFO_DATA_SIZE = 34;
+  parameter addrSize = 4;
 
   logic [FIFO_DATA_SIZE-1:0] rd_data, wr_data;
   logic                wr_full,
@@ -54,7 +54,7 @@ task readFromBuffer;
   end
 endtask
   initial begin
-     #(CLK_PERIOD);
+     #(CLK_TIME_DELAY);
       forever #(CLK_PERIOD/2) wr_clk <= ~ wr_clk;
     end
   initial forever #(CLK_PERIOD/2) rd_clk <= ~ rd_clk;
@@ -88,7 +88,8 @@ endtask
     // Test 2
     currTestPassed = 1;
     for (int i=0;  i < (1<<addrSize); i++) begin
-      testDataArr [i] = $urandom_range((1<<FIFO_DATA_SIZE-1),0);
+      //testDataArr [i] = $urandom_range(0,(1<<FIFO_DATA_SIZE));
+      testDataArr [i] = i;
       writeToBuffer( testDataArr [i] );
     end
 
