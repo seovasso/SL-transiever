@@ -156,9 +156,9 @@ always @( posedge pclk, negedge preset_n ) begin
         STATUS_MODIFIER : status_r  <= fifo_read_data[ STATUS_REG_WIDTH-1:0];
         CHANNEL_MODIFIER: channel_r <= fifo_read_data[CHANNEL_REG_WIDTH-1:0];
       endcase
-      fifo_write_inc<=1;
+      fifo_read_inc<=1;
     end else begin
-      fifo_write_inc<=0;
+      fifo_read_inc<=0;
     end
   end
 end

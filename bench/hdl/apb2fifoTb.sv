@@ -28,18 +28,13 @@ module apb2fifoTb(
     logic                   pready;
     logic                   pslverr;
     //variables for FIFO's interfaces
-    logic                   fifo_read_empty;
-    logic                   fifo_write_full;
-    logic       [33:0]      fifo_read_data;
-    logic                   fifo_read_inc;
-    logic       [33:0]      fifo_write_data;
-    logic                   fifo_write_inc;
-    //variaples for fifo buffers
-    logic [33:0] rd_data, wr_data;
-    logic                wr_full,
-                         rd_empty,
-                         wr_inc,
-                         rd_inc;
+    wire                   fifo_read_empty;
+    wire                   fifo_write_full;
+    wire       [33:0]      fifo_read_data;
+    wire                   fifo_read_inc;
+    wire       [33:0]      fifo_write_data;
+    wire                   fifo_write_inc;
+
 //instances
 
 
@@ -65,21 +60,11 @@ module apb2fifoTb(
                                          .wr_full  (fifo_write_full),
                                          .wr_inc   (fifo_write_inc),
                                          .wr_clk   (pclk),
-                                         .rd_data  (rd_data),
-                                         .rd_inc   (rd_inc),
-                                         .rd_clk   (clk),
-                                         .rd_empty (rd_empty),
-                                         .wr_rst_n (preset_n),
-                                         .rd_rst_n (reset_n));
-   AsyncFifo#(4,34) to_apb_fifo (        .wr_data  (wr_data),
-                                         .wr_full  (wr_full),
-                                         .wr_inc   (wr_inc),
-                                         .wr_clk   (clk),
                                          .rd_data  (fifo_read_data),
                                          .rd_inc   (fifo_read_inc),
                                          .rd_clk   (pclk),
                                          .rd_empty (fifo_read_empty),
-                                         .wr_rst_n (reset_n),
+                                         .wr_rst_n (preset_n),
                                          .rd_rst_n (preset_n));
  // Apb Transactions tasks
    task writeTransaction;
@@ -118,7 +103,7 @@ module apb2fifoTb(
        penable=1;
        #CLK_PERIOD;
        //while(!pready)begin
-       //readedData=prdata;
+       readedData=prdata;
        psel=0;
        penable=0;
        paddr=0;
@@ -127,47 +112,19 @@ module apb2fifoTb(
 
      end
    endtask
-// buffer transactions tasks
-task writeToBuffer;
-  input logic [FIFO_DATA_SIZE-1:0] dataToSend;
-  begin
-    #(CLK_TIME_DELAY);
-    wr_data = dataToSend;
-    if (!wr_full) wr_inc = 1;
-    else $display("Write operation aborted: buffer is full");
-    #CLK_PERIOD;
-    wr_inc = 0;
-    wr_data = 0;
-    #(CLK_PERIOD-CLK_TIME_DELAY);
-  end
-endtask
-logic [FIFO_DATA_SIZE-1:0] readedFifoData;
-task readFromBuffer;
-  begin
-    if (!rd_empty) begin
-      readedFifoData = rd_data;
-      rd_inc = 1;
-      #CLK_PERIOD;
-      rd_inc = 0;
-      #CLK_PERIOD;
-    end
-    else $display("Read operation aborted: buffer is empty");
-    rd_inc = 0;
-  end
-endtask
-// tests
+// test clocks
    initial begin
       #(CLK_TIME_DELAY);
-       forever #(CLK_PERIOD/2) clk<=~clk;//������ ����
+       forever #(CLK_PERIOD/2) clk<=~clk;
      end
-   initial forever #(CLK_PERIOD/2) pclk<=~pclk;//������ ����
+   initial forever #(CLK_PERIOD/2) pclk<=~pclk;
 
-
-
+// test Description
+logic currTestPassed;
+logic allTestsPassed;
     initial begin
-    rd_inc = 0;
-    wr_inc = 0;
-
+    currTestPassed = 1;
+    allTestsPassed = 1;
     readedData = 1;
     clk = 0;
     pclk = 1;
@@ -185,13 +142,32 @@ endtask
     preset_n = 1;
     reset_n = 1;
     #40
-   writeTransaction(DATA_ADDR,32'd4453);
-   writeTransaction(CHANNEL_ADDR,32'd0);
+   writeTransaction(DATA_ADDR,32'd112356);
+   writeTransaction(CHANNEL_ADDR,32'd2);
     #100;
-   writeTransaction(CONFIG_ADDR,32'd1);
+   writeTransaction(CONFIG_ADDR,32'd633);
    #10;
-//     readTransaction(10'd6);
-    end
-
-
+   currTestPassed = 1;
+   readTransaction(DATA_ADDR);
+   if (readedData!=32'd112356) begin
+   currTestPassed = 0;
+   allTestsPassed = 0;
+   end
+   $display ("Test #1: DATA read %s ",(currTestPassed?"passed":"failed"));
+   currTestPassed = 1;
+   readTransaction(CHANNEL_ADDR);
+   if (readedData!=32'd2) begin
+   currTestPassed = 0;
+   allTestsPassed = 0;
+   end
+   currTestPassed = 1;
+   $display ("Test #2: CHANNEL read %s ",(currTestPassed?"passed":"failed"));
+   readTransaction(CONFIG_ADDR);
+   if (readedData!=32'd633) begin
+   currTestPassed = 0;
+   allTestsPassed = 0;
+   end
+   $display ("Test #2: CONFIG read %s ",(currTestPassed?"passed":"failed"));
+   $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
+  end
 endmodule
