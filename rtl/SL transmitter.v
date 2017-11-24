@@ -43,6 +43,7 @@ reg [4:0] freq_devide_cnt_max ;
 wire[4:0] freq_devide_cnt_next;
 wire[9:0] config_r_next; //Configuration register next value
 wire[9:0] data_r_next; //Data register next value
+wire      parity_next;
 wire[5:0] bitcnt_r_next;
 // Configuration register bits
 parameter BQL  = 0, // bit quantity low bit
@@ -59,6 +60,7 @@ assign send_in_process = status_r;
 
 assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[0])? freq_devide_cnt_r+6'b1 : 6'd0;
 assign bitcnt_r_next = (freq_devide_cnt_r == freq_devide_cnt_max ? bitcnt_r+1: bitcnt_r);
+assign parity_next = (freq_devide_cnt_r == freq_devide_cnt_max ? ~parity_r : parity_r);
 
 always @ ( * ) begin // frequency devider
   case (config_r[FQH:FQL])
@@ -118,6 +120,7 @@ always @* begin
     state_r[WORD_ENDING]:
       if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[WORD_ENDING] = 1'b1;
       else                                                                       next_r[       IDLE] = 1'b1;
+    //default:                                                                   next_r[       IDLE] = 1'b1;
   endcase
 end
 
@@ -130,7 +133,6 @@ always @(posedge clk, negedge rst_n) begin
     config_r[ 9:0] <= 10'b0100001000;
     status_r       <= 0;
     parity_r       <= 0;
-    next_r         <= 0;
     sl0_r    <= 1;
     sl1_r    <= 1;
     send_now <= 0;
@@ -150,12 +152,12 @@ always @(posedge clk, negedge rst_n) begin
         next_r[         ONE]: begin
                                 sl0_r    <= 1'b1;
                                 sl1_r    <= 1'b0;
-                                parity_r <= parity_r ^ 1;
+                                parity_r <= parity_next;
                               end
         next_r[        ZERO]: begin
                                 sl0_r    <= 1'b0;
                                 sl1_r    <= 1'b1;
-                                parity_r <= parity_r ^ 0;
+
                               end
         next_r[     PARITY]:  begin
                                 sl0_r <=  ~parity_r;

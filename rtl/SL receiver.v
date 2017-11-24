@@ -101,6 +101,7 @@ always @* begin
     state_r[      LEV_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
     state_r[ WAIT_BIT_END]: if( bit_ended ) next_r[BIT_WAIT_FLUSH] = 1'b1;
                             else            next_r[  WAIT_BIT_END] = 1'b1;
+    //default:                next_r[BIT_WAIT_FLUSH] = 1'b1;
   endcase
 end
 
@@ -109,15 +110,15 @@ always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     sl0_tmp_r[15:0]       <= 16'hAAAA;
     sl1_tmp_r[15:0]       <= 16'hAAAA;
-    shift_data_r[32:0]    <= 0;
-    cycle_cnt_r[5:0]      <= 0;
-    bit_cnt_r[5:0]        <= 0;
-    buffered_data_r[31:0] <= 0;
+    shift_data_r[32:0]    <= 1'b0;
+    cycle_cnt_r[5:0]      <= 1'b0;
+    bit_cnt_r[5:0]        <= 1'b0;
+    buffered_data_r[31:0] <= 1'b0;
     config_r[15:0]        <= 16'h0010;
-    status_r[15:0]        <= 0;
-    parity_zeroes         <= 0;
-    parity_ones           <= 1;
-    next_r                <= 0;
+    status_r[15:0]        <= 1'b0;
+    parity_zeroes         <= 1'b0;
+    parity_ones           <= 1'b1;
+
 
   end else begin
       sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
