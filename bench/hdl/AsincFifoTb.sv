@@ -111,5 +111,4 @@ endtask
     $display ("Test #3: load and store %s ",(currTestPassed?"passed":"failed"));
     $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
   end
-
 endmodule

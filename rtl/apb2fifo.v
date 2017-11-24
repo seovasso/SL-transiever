@@ -4,14 +4,13 @@ module Apb2Fifo(
 //Apb ports
 input                       pclk, //синхронизация шины
 input                       preset_n, //ресет apb
-input   [15:0]paddr,
+input       [15:0]          paddr,
 input                       psel,
 input                       penable,
 input                       pwrite,
-input   [31:0]              pwdata,
-input   [3:0]               pstrb,
+input       [31:0]          pwdata,
 output  reg                 pready,
-output  reg [31:0]         prdata,
+output  reg [31:0]          prdata,
 output  reg                 pslverr,
 //Fifo ports
 input                       fifo_read_empty,

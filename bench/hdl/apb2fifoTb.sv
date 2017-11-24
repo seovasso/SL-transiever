@@ -16,17 +16,17 @@ module apb2fifoTb(
     logic pclk;// apb clock
 
     //variables for apb interface
-    logic   [31:0]          readedData;
-    logic                   preset_n;
-    logic                   reset_n;
-    logic [APB_ADDR_SIZE-1:0]  paddr;
-    logic                   psel;
-    logic                   penable;
-    logic                   pwrite;
-    logic [31:0]            pwdata;
-    logic [31:0]            prdata;
-    logic                   pready;
-    logic                   pslverr;
+    logic   [31:0]            readedData;
+    logic                     preset_n;
+    logic                     reset_n;
+    logic [APB_ADDR_SIZE-1:0] paddr;
+    logic                     psel;
+    logic                     penable;
+    logic                     pwrite;
+    logic [31:0]              pwdata;
+    logic [31:0]              prdata;
+    logic                     pready;
+    logic                     pslverr;
     //variables for FIFO's interfaces
     wire                   fifo_read_empty;
     wire                   fifo_write_full;
@@ -142,11 +142,13 @@ logic allTestsPassed;
     preset_n = 1;
     reset_n = 1;
     #40
+
    writeTransaction(DATA_ADDR,32'd112356);
    writeTransaction(CHANNEL_ADDR,32'd2);
     #100;
    writeTransaction(CONFIG_ADDR,32'd633);
    #10;
+
    currTestPassed = 1;
    readTransaction(DATA_ADDR);
    if (readedData!=32'd112356) begin
@@ -154,20 +156,23 @@ logic allTestsPassed;
    allTestsPassed = 0;
    end
    $display ("Test #1: DATA read %s ",(currTestPassed?"passed":"failed"));
+
    currTestPassed = 1;
    readTransaction(CHANNEL_ADDR);
    if (readedData!=32'd2) begin
    currTestPassed = 0;
    allTestsPassed = 0;
    end
-   currTestPassed = 1;
    $display ("Test #2: CHANNEL read %s ",(currTestPassed?"passed":"failed"));
+
+   currTestPassed = 1;
    readTransaction(CONFIG_ADDR);
    if (readedData!=32'd633) begin
    currTestPassed = 0;
    allTestsPassed = 0;
    end
    $display ("Test #2: CONFIG read %s ",(currTestPassed?"passed":"failed"));
+
    $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
   end
 endmodule

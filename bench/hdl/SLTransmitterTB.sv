@@ -92,7 +92,7 @@ module SlTransmitterTb();
   rst_n = 1;
   #10;
   //Test 1
-  for (int i=0; i<=6; i++) begin: test_N
+  for (int i=0; i<6; i++) begin: test_N
     currTestPassed = 1;
     frequency_mode = $urandom_range(0,5);
     messageLength = 8+$urandom_range(0,12)*2;
