@@ -36,24 +36,28 @@ parameter RX_OR_TX_BIT=0
 
 //transmitter mux outputs and dmux inputs
 reg    [31:0]  curr_wr_data_tx; //dmux
-reg            curr_data_wr_en_tx; //dmux
-reg    [15:0]  curr_wr_config_tx; //dmux
-reg            curr_config_wr_en_tx; //dmux
+reg            curr_data_we_tx; //dmux (current write_enable of transmitter data_r)
+reg    [15:0]  curr_wr_config_tx; //dmux (current write_enable of transmitter config_r)
+reg            curr_config_we_tx; //dmux
 reg            curr_rd_status_tx; //mux
 reg    [15:0]  curr_rd_config_tx; //mux
+//change tx markers
 reg            curr_config_changed_tx;
 reg            curr_status_changed_tx;
 
 //reciever mux outputs and dmux inputs
 reg    [15:0]  curr_wr_config_rx; //dmux
-reg            curr_config_rx_wr_en; //dmux
+reg            curr_config_rx_we; //dmux (current write_enable of reciever config_r)
 reg            curr_rd_status_rx; //mux
 reg    [15:0]  curr_rd_config_rx; //mux
 reg    [31:0]  curr_rd_data_rx;// dmux
+//change rx markers
 reg            curr_config_changed_rx;
 reg            curr_status_changed_rx;
 reg            curr_data_changed_rx;
 
+//change channel marker
+reg            channel_changed_r;
 
 //mux and dmux description
 always @*
@@ -92,8 +96,8 @@ always @( posedge clk, negedge rst_n ) begin
   if( !rst_n ) begin: fsm_initialize
     in_state_r    <= 6'b0;
     out_state_r   <= 7'b0;
-    in_state_r [READ_WAIT ] <= 1;
-    out_state_r[WRITE_WAIT] <= 1;
+    in_state_r [WRITE_WAIT ] <= 1;
+    out_state_r[READ_WAIT] <= 1;
   end: fsm_initialize
   else  begin: fsm_processing
     in_state_r  <= in_next;
@@ -117,7 +121,7 @@ always @* begin: in_fsm_next_calculate
   in_next = 6'b0;
   case (1'b1)
     in_state_r[WRITE_WAIT]:
-      if (!fifo_read_empty)
+      if (!fifo_write_full)
         if (in_modifier == CHANNEL_MODIFIER)          in_next[WRITE_CHANNEL  ] = 1'b1;
         else
           if (channel_r[RX_OR_TX_BIT]) begin: rx_processing
@@ -143,7 +147,34 @@ always @* begin: in_fsm_next_calculate
   endcase
 end: in_fsm_next_calculate
 
+always @* begin: out_fsm_next_calculate
+  out_next = 6'b0;
+  case (1'b1)
+    out_state_r [READ_CHANNEL  ],
+    out_state_r [READ_RX_DATA  ],
+    out_state_r [READ_RX_CONFIG],
+    out_state_r [READ_RX_STATUS],
+    out_state_r [READ_TX_CONFIG],
+    out_state_r [READ_WAIT     ]:
+      if (!fifo_read_empty)
+        if (channel_changed_r)                        out_next[READ_CHANNEL  ] = 1'b1;
+        else
+          if (channel_r[RX_OR_TX_BIT]) begin: rx_processing
+              if (data_changed_rx)                    out_next[READ_RX_DATA  ] = 1'b1;
+              else if (config_changed_rx)             out_next[READ_RX_CONFIG] = 1'b1;
+              else if (status_changed_rx)             out_next[READ_RX_STATUS] = 1'b1;
+              else                                    out_next[READ_WAIT     ] = 1'b1;
+          end: rx_processing
+          else
+          begin: tx_processing
+              if      (config_changed_rx)             out_next[READ_TX_CONFIG] = 1'b1;
+              else if (status_changed_rx)             out_next[READ_TX_STATUS] = 1'b1;
+              else                                    out_next[READ_WAIT     ] = 1'b1;
+          end: tx_processing
+      else                                            out_next[READ_WAIT     ] = 1'b1;
 
+  endcase
+end: out_fsm_next_calculate
 
 
 
