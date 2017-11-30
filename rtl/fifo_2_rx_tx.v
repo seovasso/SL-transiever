@@ -1,3 +1,6 @@
+
+
+
 module Apb2TxRx   #(parameter TX_COUNT = 1,
                     parameter RX_COUNT = 1)
     (
@@ -16,16 +19,16 @@ module Apb2TxRx   #(parameter TX_COUNT = 1,
     output    [(16*TX_COUNT-1):0]  wr_config_tx,
     output    [TX_COUNT-1:0]       config_wr_en_tx,
     input     [TX_COUNT-1:0]       rd_status_tx,
-    input     [TX_COUNT-1:0]       rd_config_tx,
+    input     [(16*TX_COUNT-1):0]  rd_config_tx,
     input     [TX_COUNT-1:0]       config_changed_tx,
     input     [TX_COUNT-1:0]       status_changed_tx,
 
     // rx  communication ports
-    output    [(16*RX_COUNT-1):0] wr_config_rx,
-    output    [RX_COUNT-1:0]      config_wr_en_rx,
-    input     [RX_COUNT-1:0]      rd_status_rx,
-    input     [RX_COUNT-1:0]      rd_config_rx,
-    output    [(32*RX_COUNT-1):0] rd_data_rx,
+    output    [(16*RX_COUNT-1):0]  wr_config_rx,
+    output    [RX_COUNT-1:0]       config_wr_en_rx,
+    input     [(16*RX_COUNT-1):0]  rd_status_rx,
+    input     [(16*RX_COUNT-1):0]  rd_config_rx,
+    output    [(32*RX_COUNT-1):0]  rd_data_rx,
     input     [TX_COUNT-1:0]       config_changed_rx,
     input     [TX_COUNT-1:0]       data_changed_rx,
     input     [TX_COUNT-1:0]       status_changed_rx
@@ -47,7 +50,7 @@ reg            curr_status_changed_tx;
 
 //reciever mux outputs and dmux inputs
 reg    [15:0]  curr_wr_config_rx; //dmux
-reg            curr_config_rx_we; //dmux (current write_enable of reciever config_r)
+reg            curr_config_we_rx; //dmux (current write_enable of reciever config_r)
 reg            curr_rd_status_rx; //mux
 reg    [15:0]  curr_rd_config_rx; //mux
 reg    [31:0]  curr_rd_data_rx;// dmux
@@ -121,7 +124,7 @@ always @* begin: in_fsm_next_calculate
   in_next = 6'b0;
   case (1'b1)
     in_state_r[WRITE_WAIT]:
-      if (!fifo_write_full)
+      if (!fifo_read_empty)
         if (in_modifier == CHANNEL_MODIFIER)          in_next[WRITE_CHANNEL  ] = 1'b1;
         else
           if (channel_r[RX_OR_TX_BIT]) begin: rx_processing
@@ -147,16 +150,54 @@ always @* begin: in_fsm_next_calculate
   endcase
 end: in_fsm_next_calculate
 
-always @* begin: out_fsm_next_calculate
-  out_next = 6'b0;
+always @(posedge clk, negedge rst_n) begin
+  if( !rst_n ) begin
+    curr_wr_data_tx   <= 0;
+    curr_data_we_tx   <= 0;
+    curr_wr_config_rx <= 0;
+    curr_config_we_rx <= 0;
+    curr_wr_config_tx <= 0;
+    curr_config_we_tx <= 0;
+    channel_changed_r <= 0;
+  end else begin
   case (1'b1)
-    out_state_r [READ_CHANNEL  ],
-    out_state_r [READ_RX_DATA  ],
-    out_state_r [READ_RX_CONFIG],
-    out_state_r [READ_RX_STATUS],
-    out_state_r [READ_TX_CONFIG],
+    in_next [WRITE_WAIT     ]: begin
+      curr_data_we_tx   <= 0;
+      curr_config_we_rx <= 0;
+      curr_config_we_tx <= 0;
+      fifo_read_inc     <= 0;
+      channel_changed_r <= 0;
+    end
+    in_next [WRITE_CHANNEL]: begin
+      channel_r <= fifo_read_data[CHANNEL_REG_SIZE:0];
+      channel_changed_r <= 1;
+    end
+    in_next [WRITE_RX_CONFIG]: begin
+      // curr_wr_config_rx <= fifo_read_data [15:0];
+      curr_config_we_rx <= 1;
+      fifo_read_inc     <= 1;
+    end
+    in_next [WRITE_TX_CONFIG]:begin
+      // curr_wr_config_tx <= fifo_read_data [15:0];
+      curr_config_we_tx <= 1;
+      fifo_read_inc     <= 1;
+    end
+    in_next [WRITE_TX_DATA ]: begin
+      // curr_wr_data_tx <= fifo_read_data [31:0];
+      curr_data_we_tx <= 1;
+      fifo_read_inc   <= 1;
+    end
+    in_next [WRITE_ERROR   ]: begin
+      fifo_read_inc   <= 1;
+    end
+  endcase
+  end
+
+always @* begin: out_fsm_next_calculate
+  out_next = 7'b0;
+  case (1'b1)
     out_state_r [READ_WAIT     ]:
-      if (!fifo_read_empty)
+      if (!fifo_write_full)
         if (channel_changed_r)                        out_next[READ_CHANNEL  ] = 1'b1;
         else
           if (channel_r[RX_OR_TX_BIT]) begin: rx_processing
@@ -172,9 +213,51 @@ always @* begin: out_fsm_next_calculate
               else                                    out_next[READ_WAIT     ] = 1'b1;
           end: tx_processing
       else                                            out_next[READ_WAIT     ] = 1'b1;
-
+      out_state_r [READ_CHANNEL  ],
+      out_state_r [READ_RX_DATA  ],
+      out_state_r [READ_RX_CONFIG],
+      out_state_r [READ_RX_STATUS],
+      out_state_r [READ_TX_STATUS],
+      out_state_r [READ_TX_CONFIG]:                   out_next[READ_WAIT     ] = 1'b1;
   endcase
 end: out_fsm_next_calculate
+
+always @(posedge clk, negedge rst_n) begin
+  if( !rst_n ) begin
+    fifo_write_data <= 32'b0;
+    fifo_write_inc  <= 0;
+  end else begin
+  case (1'b1)
+    out_next  [READ_WAIT     ]: begin
+      fifo_write_inc <= 0;
+    end
+    out_next  [READ_CHANNEL  ]:out_next  [READ_WAIT     ]: begin
+      fifo_write_data <= {CHANNEL_MODIFIER, 32'b0 | channel_r};
+      fifo_write_inc <= 1;
+    end
+    out_next  [READ_RX_DATA  ]: begin
+      fifo_write_data <= {DATA_MODIFIER,       curr_rd_data_rx};
+      fifo_write_inc <= 1;
+    end
+    out_next  [READ_RX_CONFIG]:begin
+      fifo_write_data <= {CONFIG_MODIFIER, 32'b0 | curr_rd_config_rx};
+      fifo_write_inc <= 1;
+    end;
+    out_next  [READ_RX_STATUS]:begin
+      fifo_write_data <= {STATUS_MODIFIER, 32'b0 | curr_rd_status_rx};
+      fifo_write_inc <= 1;
+    end;
+    out_next  [READ_TX_STATUS]:begin
+      fifo_write_data <= {STATUS_MODIFIER, 32'b0 | curr_rd_status_tx};
+      fifo_write_inc <= 1;
+    end;;
+    out_next  [READ_TX_CONFIG]:begin
+      fifo_write_data <= {CONFIG_MODIFIER, 32'b0 | curr_rd_config_tx_rx};
+      fifo_write_inc <= 1;
+    end;;
+    end
+  endcase
+  end
 
 
 
