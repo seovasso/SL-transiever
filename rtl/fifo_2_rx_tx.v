@@ -182,9 +182,9 @@ always @(posedge clk, negedge rst_n) begin
         fifo_read_inc     <= 1;
       end
       in_next [WRITE_RX_CONFIG]: begin
-        wr_config_rx <= fifo_read_data [15:0];
-        config_we_rx <= 1;
-        fifo_read_inc     <= 1;
+        wr_config_rx  <= fifo_read_data [15:0];
+        config_we_rx  <= 1;
+        fifo_read_inc <= 1;
       end
       in_next [WRITE_TX_CONFIG]:begin
         wr_config_tx <= fifo_read_data [15:0];
@@ -207,27 +207,40 @@ always @* begin: out_fsm_next_calculate
   out_next = 7'b0;
   case (1'b1)
     out_state_r [READ_WAIT     ]:
-      if (!fifo_write_full)
-        if (channel_changed_r)                        out_next[READ_CHANNEL  ] = 1'b1;
-        else
-          if (channel_r) begin: rx_processing
-              if (data_status_changed_rx)             out_next[READ_RX_DATA  ] = 1'b1;
-              else if (config_changed_rx)             out_next[READ_RX_CONFIG] = 1'b1;
-              else                                    out_next[READ_WAIT     ] = 1'b1;
-          end: rx_processing
-          else
-          begin: tx_processing
-              if      (config_changed_tx)             out_next[READ_TX_CONFIG] = 1'b1;
-              else if (status_changed_tx)             out_next[READ_TX_STATUS] = 1'b1;
-              else                                    out_next[READ_WAIT     ] = 1'b1;
-          end: tx_processing
+      if (!fifo_write_full)                           out_next[READ_CHANNEL  ] = 1'b1;
       else                                            out_next[READ_WAIT     ] = 1'b1;
-      out_state_r [READ_RX_DATA  ]:                   out_next[READ_RX_STATUS] = 1'b1;
-      out_state_r [READ_CHANNEL  ],
-      out_state_r [READ_RX_CONFIG],
-      out_state_r [READ_RX_STATUS],
-      out_state_r [READ_TX_STATUS],
-      out_state_r [READ_TX_CONFIG]:                   out_next[READ_WAIT     ] = 1'b1;
+    out_state_r [READ_CHANNEL  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)
+          if (channel_r[0])                           out_next[READ_RX_DATA]   = 1'b1;
+          else                                        out_next[READ_TX_CONFIG] = 1'b1;
+        else                                          out_next[READ_CHANNEL]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
+      out_state_r [READ_RX_DATA  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)                       out_next[READ_RX_CONFIG]   = 1'b1;
+        else                                          out_next[READ_CHANNEL]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
+      out_state_r [READ_RX_CONFIG  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)                       out_next[READ_RX_STATUS]   = 1'b1;
+        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
+      out_state_r [READ_RX_STATUS  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)                       out_next[READ_RX_DATA]   = 1'b1;
+        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
+      out_state_r [READ_TX_CONFIG  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)                       out_next[READ_TX_STATUS]   = 1'b1;
+        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
+      out_state_r [READ_TX_STATUS  ]:
+      if (!fifo_write_full) begin
+        if (!channel_changed_r)                       out_next[READ_TX_CONFIG]   = 1'b1;
+        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+      end else                                        out_next[READ_WAIT     ]   = 1'b1;
   endcase
 end: out_fsm_next_calculate
 
@@ -245,7 +258,7 @@ always @(posedge clk, negedge rst_n) begin
         fifo_write_inc <= 1;
       end
       out_next  [READ_RX_DATA  ]: begin
-        fifo_write_data <= {DATA_MODIFIER,       rd_data_rx};
+        fifo_write_data <= {DATA_MODIFIER,  32'b0 |  rd_data_rx};
         fifo_write_inc <= 1;
       end
       out_next  [READ_RX_CONFIG]:begin
