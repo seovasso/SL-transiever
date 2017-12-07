@@ -100,7 +100,7 @@ module Fifo2TxRxTb(
        config_changed_tx = 0;
        status_changed_tx = 0;
        // inputs from rx
-       wr_config_rx = 0;
+
        rd_status_rx = 0;
        rd_config_rx = 0;
        rd_data_rx = 0;
@@ -193,7 +193,7 @@ module Fifo2TxRxTb(
             8, "read rx config");
 
          #CLK_PERIOD;
-          rd_data_rx = 32'd4567;
+          rd_data_rx = 32'd456791;
           rd_status_rx = 16'd76;
           data_status_changed_rx = 1;
           #CLK_PERIOD;
@@ -201,21 +201,23 @@ module Fifo2TxRxTb(
           writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791),
              9, "read rx data");
           #CLK_PERIOD;
-          writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791),
+          writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| 32'd76),
             10, "read rx  status");
 
 
           #CLK_PERIOD;
-          fifo_read_data  = 34'd1 | 34'd3<<32;
+          fifo_read_data  = 34'd0 | 34'd3<<32;
           fifo_read_empty = 0;
           #CLK_PERIOD;
           fifo_read_empty = 1;
-
-          writeTestResult(fifo_write_inc && fifo_write_data == (34'd3 << 32| 34'd1),
+          #CLK_PERIOD;
+          writeTestResult(fifo_write_inc && fifo_write_data == (34'd3 << 32| 32'd0),
              11, "read channel");
 
+
           #CLK_PERIOD;
-           rd_config_tx = 16'd698;
+           message = 32'd698;
+           rd_config_tx = message[15:0];
            config_changed_tx = 1;
            #CLK_PERIOD;
            config_changed_tx = 0;
@@ -231,7 +233,7 @@ module Fifo2TxRxTb(
             status_changed_tx = 0;
 
             writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| message[0]),
-               13, "read tx config");
+               13, "read tx status");
               $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
      end
 
