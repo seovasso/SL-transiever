@@ -20,7 +20,6 @@ module Fifo2TxRx   #(parameter TX_COUNT = 1,
     output  reg          config_we_tx,
     input                 rd_status_tx,
     input         [15:0]  rd_config_tx,
-    input                 config_changed_tx,
     input                 status_changed_tx,
 
     // rx  communication ports
@@ -28,8 +27,7 @@ module Fifo2TxRx   #(parameter TX_COUNT = 1,
     output  reg          config_we_rx,
     input        [15:0]  rd_status_rx,
     input        [15:0]  rd_config_rx,
-    input        [15:0]  rd_data_rx,
-    input             config_changed_rx,
+    input        [31:0]  rd_data_rx,
     input             data_status_changed_rx
     );
 
@@ -157,7 +155,7 @@ always @(posedge clk, negedge rst_n) begin
 
     wr_data_tx   <= 32'b0;
     data_we_tx   <= 0;
-
+    channel_r    <= 0;
     wr_config_rx <= 16'b0;
     config_we_rx <= 0;
 
@@ -194,7 +192,7 @@ always @(posedge clk, negedge rst_n) begin
       in_next [WRITE_TX_DATA ]: begin
         wr_data_tx <= fifo_read_data [31:0];
         data_we_tx <= 1;
-        fifo_read_inc   <= 1;
+        fifo_read_inc <= 1;
       end
       in_next [WRITE_ERROR   ]: begin
         fifo_read_inc   <= 1;
@@ -203,44 +201,55 @@ always @(posedge clk, negedge rst_n) begin
     end
   end
 
+wire config_changed_tx, config_changed_rx;
+assign config_changed_tx = in_state_r[WRITE_TX_CONFIG] == 1'b1;
+assign config_changed_rx = in_state_r[WRITE_RX_CONFIG] == 1'b1;
+
+
 always @* begin: out_fsm_next_calculate
   out_next = 7'b0;
   case (1'b1)
     out_state_r [READ_WAIT     ]:
-      if (!fifo_write_full)                           out_next[READ_CHANNEL  ] = 1'b1;
-      else                                            out_next[READ_WAIT     ] = 1'b1;
+      if (!fifo_write_full)   begin
+        if (channel_changed_r)                              out_next[READ_CHANNEL  ] = 1'b1;
+        else if (config_changed_tx && !channel_r)           out_next[READ_TX_CONFIG] = 1'b1;
+        else if (config_changed_rx &&  channel_r)           out_next[READ_RX_CONFIG] = 1'b1;
+        else if (data_status_changed_rx && channel_r)       out_next[READ_RX_DATA  ] = 1'b1;
+        else if (status_changed_tx &&  !channel_r)          out_next[READ_TX_STATUS] = 1'b1;
+        else                                                out_next[READ_WAIT     ] = 1'b1;
+      end else                                              out_next[READ_WAIT     ] = 1'b1;
     out_state_r [READ_CHANNEL  ]:
       if (!fifo_write_full) begin
         if (!channel_changed_r)
-          if (channel_r[0])                           out_next[READ_RX_DATA]   = 1'b1;
-          else                                        out_next[READ_TX_CONFIG] = 1'b1;
-        else                                          out_next[READ_CHANNEL]   = 1'b1;
+          if (channel_r)                              out_next[READ_RX_DATA  ] = 1'b1;
+          else                                        out_next[READ_TX_STATUS] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_DATA  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_RX_CONFIG]   = 1'b1;
-        else                                          out_next[READ_CHANNEL]   = 1'b1;
+        if (!channel_changed_r)                       out_next[READ_RX_STATUS] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_CONFIG  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_RX_STATUS]   = 1'b1;
-        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+        if (!channel_changed_r)                       out_next[READ_WAIT     ] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_STATUS  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_RX_DATA]   = 1'b1;
-        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+        if (!channel_changed_r)                       out_next[READ_RX_CONFIG] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_CONFIG  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_TX_STATUS]   = 1'b1;
-        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
+        if (!channel_changed_r)                       out_next[READ_WAIT     ] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_STATUS  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_TX_CONFIG]   = 1'b1;
-        else                                          out_next[READ_CHANNEL  ]   = 1'b1;
-      end else                                        out_next[READ_WAIT     ]   = 1'b1;
+        if (!channel_changed_r)                       out_next[READ_TX_CONFIG] = 1'b1;
+        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+      end else                                        out_next[READ_WAIT     ] = 1'b1;
   endcase
 end: out_fsm_next_calculate
 
