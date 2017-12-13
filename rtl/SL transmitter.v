@@ -37,7 +37,6 @@ reg parity_r;
 reg sl0_r;
 reg sl1_r;
 reg status_r;
-reg send_now;
 
 reg [4:0] freq_devide_cnt_max ;
 wire[4:0] freq_devide_cnt_next;
@@ -58,7 +57,7 @@ assign r_config_w = config_r;
 assign send_in_process = status_r;
 //assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
 
-assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[0])? freq_devide_cnt_r+6'b1 : 6'd0;
+assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[IDLE])? freq_devide_cnt_r+5'b1 : 5'd0;
 assign bitcnt_r_next = (freq_devide_cnt_r == freq_devide_cnt_max ? bitcnt_r+1: bitcnt_r);
 assign parity_next = (freq_devide_cnt_r == freq_devide_cnt_max ? ~parity_r : parity_r);
 
@@ -125,7 +124,6 @@ always @* begin
 end
 
 assign config_r_next = (wr_config_enable)? wr_config_w: config_r;
-
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
@@ -135,18 +133,16 @@ always @(posedge clk, negedge rst_n) begin
     parity_r       <= 0;
     sl0_r    <= 1;
     sl1_r    <= 1;
-    send_now <= 0;
-
   end else begin
       case( 1'b1 ) // synopsys parallel_case
         next_r[        IDLE]: begin
-                                txdata_r <= data_a;
+                                if (send_imm && freq_devide_cnt_r == 5'b0) txdata_r <= data_a;
                                 bitcnt_r <= 0;
                                 status_r <= 1'b0;
                                 config_r<=config_r_next;
                               end
         next_r[  START_SEND]: begin
-                                send_now <= 1'b0;
+                                if (send_imm && freq_devide_cnt_r == 5'b0) txdata_r <= data_a;
                                 status_r <= 1'b1;
                               end
         next_r[         ONE]: begin
@@ -180,5 +176,7 @@ always @(posedge clk, negedge rst_n) begin
       endcase
     end
 end
+
+
 
 endmodule

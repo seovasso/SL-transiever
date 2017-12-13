@@ -55,7 +55,6 @@ module SlTransmitterTb();
     begin
     message = $urandom_range((1<<length-1),0);
     data_a = message;
-    #clkPeriod;
     send_imm = 1;
     #clkPeriod;
     data_a = 0;
