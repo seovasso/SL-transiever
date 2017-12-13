@@ -12,7 +12,7 @@ module SlRecieverTb();
      logic [15:0] r_config_w;
      logic [31:0] data_w;
      logic [15:0] status_w;
-
+     logic data_status_changed;
 task testMassage;//конфигуриррует приемник и отправляет SL посылку
          input int mesLength;//длинна сообщения
          input int confLength;//сконфигурированая длинна
@@ -87,8 +87,8 @@ endtask
         .wr_config_w                (wr_config_w),
         .status_w                   (status_w),
         .clk                        (clk),
-        .wr_enable                  (wr_enable)
-
+        .wr_enable                  (wr_enable),
+        .data_status_changed(data_status_changed)
     );
  bit [31:0] mes;
  bit [31:0] lastCorrMess;
@@ -261,7 +261,12 @@ endtask
        end else $display("Some tests failed");
        $stop;
     end
-
+    always @status_w begin
+      if (!data_status_changed && status_w!=0) begin
+          $display("data_status_changed test failed");
+          allTest = 0;
+      end
+    end
 
 
 endmodule

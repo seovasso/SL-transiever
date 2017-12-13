@@ -40,9 +40,10 @@ image::SL.png[title="Временная диаграмма SL-канала", ali
 
 [[output-signals]]
 === Выходные сигналы
-* [15:0]status_w,
-* [31:0]data_w,
-* [15:0]r_config_w;
+* [15:0]status_w
+* [31:0]data_w
+* [15:0]r_config_w
+* data_status_changed - выход, на котором появляется импульс при каждом полезном изменении данных
 
 [[inout-signals]]
 === Двунаправленные сигналы

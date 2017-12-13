@@ -12,7 +12,8 @@ module SL_receiver (
   //Output data signals
   output wire [15:0]status_w,
   output wire [31:0]data_w,
-  output wire [15:0]r_config_w
+  output wire [15:0]r_config_w,
+  output reg        data_status_changed
     );
 
 parameter STROB_POS = 8,
@@ -118,22 +119,21 @@ always @(posedge clk, negedge rst_n) begin
     status_r[15:0]        <= 1'b0;
     parity_zeroes         <= 1'b0;
     parity_ones           <= 1'b1;
-
-
   end else begin
       sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
       sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
 
       case( 1'b1 ) // synopsys parallel_case
       next_r[BIT_WAIT_FLUSH]: begin
-            cycle_cnt_r <= 0;
-            config_r<=config_r_next;
+            data_status_changed <= 0;
+            cycle_cnt_r         <= 0;
+            config_r  <= config_r_next;
           end
         next_r[STOP_BIT], next_r[WAIT_BIT_END]: begin
               cycle_cnt_r <= 0;
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
-              status_r[15:0] <= 0;
+              status_r[15:0]      <= 0; //?????????????
             end
         next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
@@ -150,6 +150,7 @@ always @(posedge clk, negedge rst_n) begin
               bit_cnt_r    <= bit_cnt_r + 1;
             end
         next_r[ZERO_BIT]: begin
+
               shift_data_r  <= ( shift_data_r >> 1 ) & ~( 1 << config_r[BQH:BQL] );
               parity_zeroes <= parity_zeroes ^ 1;
               bit_cnt_r     <= bit_cnt_r + 1;
@@ -167,6 +168,7 @@ always @(posedge clk, negedge rst_n) begin
               status_r[LEF]   <= 0;
               //Dont forget to wipeout parity bit
               buffered_data_r <= shift_data_r & ~( 1 << config_r[BQH:BQL] );
+
             end
         next_r[PAR_ERR]: begin
               parity_zeroes   <= 0;
@@ -180,6 +182,7 @@ always @(posedge clk, negedge rst_n) begin
               status_r[PEF]   <= 1;
               status_r[LEF]   <= 0;
               buffered_data_r <= 32'h0000_0000;
+
             end
         next_r[LEN_ERR]: begin
               parity_zeroes   <= 0;
@@ -193,6 +196,7 @@ always @(posedge clk, negedge rst_n) begin
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 0;
               buffered_data_r <= 32'h0000_0000;
+
             end
         next_r[LEV_ERR]: begin
               parity_zeroes   <= 0;
@@ -206,9 +210,24 @@ always @(posedge clk, negedge rst_n) begin
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 1;
               buffered_data_r <= 32'h0000_0000;
+
             end
       endcase
     end
+end
+wire data_status_changed_next;
+assign data_status_changed_next =
+      (next_r[LEV_ERR ]     == 1'b1 ||
+       next_r[LEN_ERR ]     == 1'b1 ||
+       next_r[PAR_ERR ]     == 1'b1 ||
+       next_r[GOT_WORD]     == 1'b1 ||
+       next_r[BIT_DETECTED] == 1'b1 && (!status_r[WRP] && cycle_cnt_r == 0)
+       )? 1:0;
+always @(posedge clk, negedge rst_n)
+if( !rst_n ) begin
+  data_status_changed   <= 1'b0;
+end else begin
+  data_status_changed   <= data_status_changed_next;
 end
 
 endmodule
