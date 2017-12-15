@@ -23,6 +23,7 @@ module SlTransmitterTb();
      logic        send_in_process;
      logic        send_imm;
      logic        wr_config_enable;
+     logic        status_changed;
      SL_transmitter trans(
         .rst_n            (rst_n           ),
         .clk              (clk             ),
@@ -33,7 +34,8 @@ module SlTransmitterTb();
         .wr_config_w      (wr_config_w     ),
         .r_config_w       (r_config_w      ),
         .wr_config_enable (wr_config_enable),
-        .send_in_process  (send_in_process )
+        .send_in_process  (send_in_process ),
+        .status_changed   (status_changed  )
        );
     SlTestIdeallReciever rec (.rst_n(rst_n),
                               .sl0(SL0),
@@ -85,6 +87,7 @@ module SlTransmitterTb();
   data_a = 0;
   send_imm = 0;
   rst_n = 1;
+  #(clkPeriod/2);
   #50;
   rst_n = 0;
   #10;
@@ -108,7 +111,12 @@ module SlTransmitterTb();
   $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
 
   end
-
+always @send_in_process begin
+    if (!status_changed) begin
+      $display ("status_changed test failed");
+      allTestsPassed = 0;
+    end
+end
 
 
 

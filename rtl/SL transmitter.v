@@ -13,7 +13,8 @@ module SL_transmitter (
   input wire  [9:0]wr_config_w,
   input wire wr_config_enable,
   output wire [9:0]r_config_w,
-  output wire send_in_process
+  output wire send_in_process,
+  output reg  status_changed
     );
 
 
@@ -175,6 +176,17 @@ always @(posedge clk, negedge rst_n) begin
 
       endcase
     end
+end
+
+wire status_changed_next;
+assign status_changed_next =
+      ((next_r[START_SEND] == 1'b1 && freq_devide_cnt_next == 5'd0) ||
+       (next_r[IDLE] == 1'b1       && freq_devide_cnt_r==freq_devide_cnt_max))? 1:0;
+always @(posedge clk, negedge rst_n)
+if( !rst_n ) begin
+  status_changed   <= 1'b0;
+end else begin
+  status_changed   <= status_changed_next;
 end
 
 
