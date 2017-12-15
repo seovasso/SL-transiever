@@ -59,10 +59,11 @@ endtask
     end
   initial forever #(CLK_PERIOD/2) rd_clk <= ~ rd_clk;
 
-
+//test variables
   logic [FIFO_DATA_SIZE-1:0] testDataArr [(1 << addrSize)-1:0];
   logic currTestPassed;
   logic allTestsPassed;
+
   initial begin
   // making reset
     currTestPassed = 1;
