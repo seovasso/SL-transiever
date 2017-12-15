@@ -79,13 +79,13 @@ always @(posedge rd_clk or negedge rd_rst_n)
     // double sync parts
     reg [ADDR_SIZE:0] rd_ptr_sync;
     reg [ADDR_SIZE:0] rd2wr_ptr_buff;
-    always @(posedge wr_clk, wr_rst_n)
+    always @(posedge wr_clk or negedge wr_rst_n)
       if (!wr_rst_n) {rd_ptr_sync, rd2wr_ptr_buff} <= 0;
       else             {rd_ptr_sync, rd2wr_ptr_buff}<={rd2wr_ptr_buff, rd_ptr};
 
     reg [ADDR_SIZE:0] wr_ptr_sync;
     reg [ADDR_SIZE:0] wr2rd_ptr_buff;
-    always @(posedge rd_clk, rd_rst_n)
+    always @(posedge rd_clk or negedge rd_rst_n)
       if (!rd_rst_n) {wr_ptr_sync, wr2rd_ptr_buff} <= 0;
       else             {wr_ptr_sync, wr2rd_ptr_buff}<={wr2rd_ptr_buff, wr_ptr};
 
