@@ -13,7 +13,6 @@ module SlTranciever ( input SL0_in,
                       input       [31:0]          pwdata,
                       output                      pready,
                       output      [31:0]          prdata,
-                      output                      pslverr,
 
                       input         rst_n,
                       input         clk
@@ -34,7 +33,7 @@ Apb2Fifo mod (
                .prdata               (prdata),
                .penable              (penable),
                .pready               (pready),
-               .pslverr              (pslverr),
+               // .pslverr              (pslverr),
                .fifo_read_empty      (fifo_read_empty),
                .fifo_read_inc        (fifo_read_inc),
                .fifo_read_data       (fifo_read_data),
@@ -42,26 +41,6 @@ Apb2Fifo mod (
                .fifo_write_data      (fifo_write_data),
                .fifo_write_full      (fifo_write_full)
               );
-AsyncFifo#(4,34) from_apb_fifo (.wr_data  (fifo_write_data),
-                                .wr_full  (fifo_write_full),
-                                .wr_inc   (fifo_write_inc),
-                                .wr_clk   (pclk),
-                                .rd_data  (in_fifo_read_data),
-                                .rd_inc   (in_fifo_read_inc),
-                                .rd_clk   (clk),
-                                .rd_empty (in_fifo_read_empty),
-                                .wr_rst_n (preset_n),
-                                .rd_rst_n (reset_n));
-AsyncFifo#(4,34) to_apb_fifo (  .wr_data  (out_fifo_write_data),
-                                .wr_full  (out_fifo_write_full),
-                                .wr_inc   (out_fifo_write_inc),
-                                .wr_clk   (clk),
-                                .rd_data  (fifo_read_data),
-                                .rd_inc   (fifo_read_inc),
-                                .rd_clk   (pclk),
-                                .rd_empty (fifo_read_empty),
-                                .wr_rst_n (reset_n),
-                                .rd_rst_n (preset_n));
 
 wire                   in_fifo_read_empty;
 wire                   out_fifo_write_full;
@@ -71,6 +50,28 @@ wire                   in_fifo_read_inc;
 
 wire       [33:0]      out_fifo_write_data;
 wire                   out_fifo_write_inc;
+AsyncFifo#(4,34) from_apb_fifo (.wr_data  (fifo_write_data),
+                                .wr_full  (fifo_write_full),
+                                .wr_inc   (fifo_write_inc),
+                                .wr_clk   (pclk),
+                                .rd_data  (in_fifo_read_data),
+                                .rd_inc   (in_fifo_read_inc),
+                                .rd_clk   (clk),
+                                .rd_empty (in_fifo_read_empty),
+                                .wr_rst_n (preset_n),
+                                .rd_rst_n (rst_n));
+AsyncFifo#(4,34) to_apb_fifo (  .wr_data  (out_fifo_write_data),
+                                .wr_full  (out_fifo_write_full),
+                                .wr_inc   (out_fifo_write_inc),
+                                .wr_clk   (clk),
+                                .rd_data  (fifo_read_data),
+                                .rd_inc   (fifo_read_inc),
+                                .rd_clk   (pclk),
+                                .rd_empty (fifo_read_empty),
+                                .wr_rst_n (rst_n),
+                                .rd_rst_n (preset_n));
+
+
 
 wire    [31:0]  wr_data_tx;
 wire            data_we_tx;
@@ -93,12 +94,12 @@ wire            data_status_changed_rx;
 Fifo2TxRx test_module (
   .clk (clk),
   .rst_n (rst_n),
-  .fifo_read_empty        (fifo_read_empty),
-  .fifo_write_full        (fifo_write_full),
-  .fifo_read_data         (fifo_read_data),
-  .fifo_read_inc          (fifo_read_inc),
-  .fifo_write_data        (fifo_write_data),
-  .fifo_write_inc         (fifo_write_inc),
+  .fifo_read_empty        (in_fifo_read_empty),
+  .fifo_write_full        (out_fifo_write_full),
+  .fifo_read_data         (in_fifo_read_data),
+  .fifo_read_inc          (in_fifo_read_inc),
+  .fifo_write_data        (out_fifo_write_data),
+  .fifo_write_inc         (out_fifo_write_inc),
   .wr_data_tx             (wr_data_tx),
   .data_we_tx             ( data_we_tx),
   .wr_config_tx           (wr_config_tx),
@@ -114,7 +115,7 @@ Fifo2TxRx test_module (
   .data_status_changed_rx (data_status_changed_rx)
   );
   SL_transmitter trans(
-     .rst_n            (reset_n),
+     .rst_n            (rst_n),
      .clk              (clk),
      .SL0              (SL0_out),
      .SL1              (SL1_out),
@@ -127,7 +128,7 @@ Fifo2TxRx test_module (
      .status_changed   (status_changed_tx )
     );
     SL_receiver res (
-        .rst_n                      (reset_n),
+        .rst_n                      (rst_n),
         .serial_line_zeroes_a       (SL0_in),
         .serial_line_ones_a         (SL0_in),
         .r_config_w                 (rd_config_rx),
