@@ -1,4 +1,3 @@
-
 module SlTranciever ( input SL0_in,
                       input SL1_in,
                       output SL0_out,
@@ -42,6 +41,11 @@ Apb2Fifo mod (
                .fifo_write_full      (fifo_write_full)
               );
 
+parameter TX_CONFIG_REG_WIDTH  = 10;
+parameter RX_CONFIG_REG_WIDTH  = 16;
+parameter RX_STATUS_REG_WIDTH  = 16;
+
+
 wire                   in_fifo_read_empty;
 wire                   out_fifo_write_full;
 
@@ -75,25 +79,27 @@ AsyncFifo#(4,34) to_apb_fifo (  .wr_data  (out_fifo_write_data),
 
 wire    [31:0]  wr_data_tx;
 wire            data_we_tx;
-wire    [15:0]  wr_config_tx;
+wire    [TX_CONFIG_REG_WIDTH-1:0]  wr_config_tx;
 wire            config_we_tx;
 wire            rd_status_tx;
-wire    [15:0]  rd_config_tx;
+wire    [TX_CONFIG_REG_WIDTH-1:0]  rd_config_tx;
 wire            config_changed_tx;
 wire            status_changed_tx;
 
 // rx  communication ports
-wire    [15:0]  wr_config_rx;
+wire    [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx;
 wire            config_we_rx;
-wire    [15:0]  rd_status_rx;
-wire    [15:0]  rd_config_rx;
+wire    [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx;
+wire    [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx;
 wire    [31:0]  rd_data_rx;
 wire            config_changed_rx;
 wire            data_status_changed_rx;
 
-Fifo2TxRx test_module (
-  .clk (clk),
-  .rst_n (rst_n),
+Fifo2TxRx#(TX_CONFIG_REG_WIDTH,
+          RX_CONFIG_REG_WIDTH,
+          RX_STATUS_REG_WIDTH) test_module (
+  .clk                    (clk),
+  .rst_n                  (rst_n),
   .fifo_read_empty        (in_fifo_read_empty),
   .fifo_write_full        (out_fifo_write_full),
   .fifo_read_data         (in_fifo_read_data),
@@ -133,7 +139,7 @@ Fifo2TxRx test_module (
         .serial_line_ones_a         (SL0_in),
         .r_config_w                 (rd_config_rx),
         .data_w                     (rd_data_rx),
-        .wr_config_w                (wr_config_w),
+        .wr_config_w                (wr_config_rx),
         .status_w                   (rd_status_rx),
         .clk                        (clk),
         .wr_enable                  (config_we_rx),

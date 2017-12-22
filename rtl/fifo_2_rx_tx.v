@@ -1,8 +1,10 @@
 
 
 
-module Fifo2TxRx   #(parameter TX_COUNT = 1,
-                    parameter RX_COUNT = 1)
+module Fifo2TxRx   #(parameter TX_CONFIG_REG_WIDTH = 16,
+                    parameter RX_CONFIG_REG_WIDTH = 16,
+                    parameter RX_STATUS_REG_WIDTH = 16
+                    )
     (
     input                       clk,
     input                       rst_n,
@@ -14,19 +16,19 @@ module Fifo2TxRx   #(parameter TX_COUNT = 1,
     output  reg  [33:0]         fifo_write_data,
     output  reg                 fifo_write_inc,
     // tx  communication ports
-    output  reg  [31:0]  wr_data_tx,
-    output  reg          data_we_tx,
-    output  reg  [15:0]  wr_config_tx,
-    output  reg          config_we_tx,
-    input                 rd_status_tx,
-    input         [15:0]  rd_config_tx,
-    input                 status_changed_tx,
+    output  reg  [31:0]                     wr_data_tx,
+    output  reg                             data_we_tx,
+    output  reg  [TX_CONFIG_REG_WIDTH-1:0]  wr_config_tx,
+    output  reg                             config_we_tx,
+    input                                   rd_status_tx,
+    input        [TX_CONFIG_REG_WIDTH-1:0]  rd_config_tx,
+    input                                   status_changed_tx,
 
     // rx  communication ports
-    output  reg  [15:0]  wr_config_rx,
+    output  reg  [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx,
     output  reg          config_we_rx,
-    input        [15:0]  rd_status_rx,
-    input        [15:0]  rd_config_rx,
+    input        [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx,
+    input        [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx,
     input        [31:0]  rd_data_rx,
     input             data_status_changed_rx
     );
