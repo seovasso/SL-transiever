@@ -2,7 +2,7 @@
 module SlTrancieverTB(
 
     );
-    parameter CLK_PERIOD = 10;
+    parameter CLK_PERIOD = 2;
     parameter CLK_TIME_DELAY = 3;
     parameter APB_ADDR_SIZE = 16;
     parameter FIFO_DATA_SIZE = 34;
@@ -53,6 +53,68 @@ module SlTrancieverTB(
           .SL0_out              (SL0_out),
           .SL1_out              (SL1_out)
    );
+
+   //SLMasseges tasks
+     localparam  SlClkLength = 16*CLK_PERIOD;
+
+   task testMassage;//конфигуриррует приемник и отправляет SL посылку
+            input int mesLength;//длинна сообщения
+            input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
+            logic [31:0] mes;
+     begin
+     mes=$urandom_range(2**mesLength-1,0);
+     slTransaction(mes,mesLength,parityRight);
+     end
+   endtask
+   task slTransaction;
+             input bit [31:0] mess;//отправляемое сообщение
+             input int mesLength;//длинна сообщения
+             input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
+             logic        parSl0;
+             logic        parSl1;
+      begin
+      parSl0 =1'b1;
+      parSl1 =1'b0;
+        for (int i=0; i < mesLength; i=i+1) begin
+         if(!mess[i])begin
+              parSl0 = parSl0^1;
+              #(SlClkLength/2) SL0_in=1;
+              SL0_in=0;
+              #(SlClkLength);
+              SL0_in=1;
+              #(SlClkLength/2);
+         end else begin
+             parSl1 = parSl1^1;
+             #(SlClkLength/2);
+             SL1_in=1;
+             SL1_in=0;
+             #(SlClkLength);
+             SL1_in=1;
+             #(SlClkLength/2);
+         end
+        end
+        SL1_in = 1;
+        SL0_in = 1;
+        #(SlClkLength/2);
+        if (parityRight)begin
+          SL0_in = parSl0; // бит четности по 0
+          SL1_in = parSl1; // бит четности по 1
+        end else begin
+          SL0_in = !parSl0; // неправильный бит четности по 0
+          SL1_in = !parSl1; // неправильный бит четности по 1
+        end
+        #(SlClkLength);
+        SL1_in = 1;
+        SL0_in = 1;
+        #(SlClkLength);
+        SL0_in=0;
+        SL1_in=0;
+        #(SlClkLength);
+        SL0_in=1;
+        SL1_in=1;
+        #(SlClkLength/2);
+        end
+   endtask
 
  // Apb Transactions tasks
    task writeTransaction;
@@ -114,8 +176,8 @@ logic allTestsPassed;
     currTestPassed = 1;
     allTestsPassed = 1;
     readedData = 1;
-    SL0_in = 0;
-    SL1_in = 0;
+    SL0_in = 1;
+    SL1_in = 1;
     clk = 0;
     pclk = 1;
     preset_n = 1;
@@ -133,10 +195,33 @@ logic allTestsPassed;
     reset_n = 1;
     #40;
     writeTransaction(DATA_ADDR,32'd112356);
+    #10
+
+    writeTransaction(CONFIG_ADDR,32'd0|10'b0010010000);
+    writeTransaction(DATA_ADDR,32'd112356);
+    readTransaction(CONFIG_ADDR);
+    writeTransaction(CHANNEL_ADDR,32'd1);
+    do begin
+    readTransaction(CHANNEL_ADDR);
+    #70;
+    end while (readedData!=32'd1);
+    readTransaction(CONFIG_ADDR);
+    #50;
+    testMassage(8,0);
+    #10;
+    readTransaction(STATUS_ADDR);
+    readTransaction(DATA_ADDR);
+      writeTransaction(CONFIG_ADDR,32'd0|10'b000100000);
+    testMassage(16,1);
+    #10;
+    readTransaction(STATUS_ADDR);
+    readTransaction(DATA_ADDR);
+    readTransaction(CONFIG_ADDR);
+    #100;
    // writeTransaction(DATA_ADDR,32'd112356);
    // writeTransaction(CHANNEL_ADDR,32'd2);
    // #100;
-   // writeTransaction(CONFIG_ADDR,32'd633);
+ $stop;
    // #10;
    end
 
