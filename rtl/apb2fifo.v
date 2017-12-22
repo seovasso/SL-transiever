@@ -1,5 +1,3 @@
-
-
 module Apb2Fifo(
 //Apb ports
 input                       pclk, //синхронизация шины
@@ -31,10 +29,10 @@ parameter CONFIG_MODIFIER    = 2'd0,
           STATUS_MODIFIER    = 2'd2,
           CHANNEL_MODIFIER   = 2'd3;
 
-parameter APB_ADDR_WIDTH     = 16;
-parameter CONFIG_REG_WIDTH   = 16;
-parameter STATUS_REG_WIDTH   = 16;
-parameter CHANNEL_REG_WIDTH  = 2;
+
+parameter APB_CONFIG_REG_WIDTH = 16;
+parameter APB_STATUS_REG_WIDTH = 16;
+parameter APB_CHANNEL_REG_WIDTH = 2;
 
 //States
 parameter IDLE        = 0,
@@ -77,10 +75,10 @@ reg [ 1:0] modifier;
 reg [31:0] reg_out;
 
 // registers model
-reg [ CONFIG_REG_WIDTH-1:0]  config_r;
-reg [ STATUS_REG_WIDTH-1:0]  status_r;
+reg [ APB_CONFIG_REG_WIDTH-1:0]  config_r;
+reg [ APB_STATUS_REG_WIDTH-1:0]  status_r;
 reg                  [31:0]  rec_data_r;
-reg [CHANNEL_REG_WIDTH-1:0]  channel_r;
+reg [APB_CHANNEL_REG_WIDTH-1:0]  channel_r;
 
 always @* case (paddr)
   CONFIG_ADDR :{modifier,reg_out} = {CONFIG_MODIFIER , 32'd0|config_r  };
@@ -150,10 +148,10 @@ always @( posedge pclk, negedge preset_n ) begin
   else begin
     if (read_from_fifo_next) begin //reading from fifo buffer
       case (fifo_read_data [33:32])
-        CONFIG_MODIFIER : config_r  <= fifo_read_data[ CONFIG_REG_WIDTH-1:0];
+        CONFIG_MODIFIER : config_r  <= fifo_read_data[APB_CONFIG_REG_WIDTH-1:0];
         DATA_MODIFIER   : rec_data_r<= fifo_read_data[                 31:0];
-        STATUS_MODIFIER : status_r  <= fifo_read_data[ STATUS_REG_WIDTH-1:0];
-        CHANNEL_MODIFIER: channel_r <= fifo_read_data[CHANNEL_REG_WIDTH-1:0];
+        STATUS_MODIFIER : status_r  <= fifo_read_data[APB_STATUS_REG_WIDTH-1:0];
+        CHANNEL_MODIFIER: channel_r <= fifo_read_data[APB_CHANNEL_REG_WIDTH-1:0];
       endcase
       fifo_read_inc<=1;
     end else begin
