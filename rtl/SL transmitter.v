@@ -124,7 +124,7 @@ always @* begin
   endcase
 end
 
-assign config_r_next = (wr_config_enable)? wr_config_w: config_r;
+assign config_r_next = (wr_config_enable && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
