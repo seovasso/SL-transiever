@@ -66,7 +66,7 @@ assign r_config_w=config_r;
 assign data_w   = buffered_data_r;
 assign bit_ended   = (sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF) ? 1 : 0;
 assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[15:12] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
-assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
+assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
 
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
