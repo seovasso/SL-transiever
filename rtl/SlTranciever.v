@@ -18,6 +18,7 @@ module SlTranciever ( input SL0_in,
                       );
 wire                 fifo_read_empty;
 wire                 fifo_write_full;
+wire                 fifo_write_empty;
 wire  [33:0]         fifo_read_data;
 wire                 fifo_read_inc;
 wire  [33:0]         fifo_write_data;
@@ -38,12 +39,13 @@ Apb2Fifo mod (
                .fifo_read_data       (fifo_read_data),
                .fifo_write_inc       (fifo_write_inc),
                .fifo_write_data      (fifo_write_data),
-               .fifo_write_full      (fifo_write_full)
+               .fifo_write_full      (fifo_write_full),
+               .fifo_write_empty     (fifo_write_empty)
               );
 
 parameter TX_CONFIG_REG_WIDTH  = 10;
 parameter RX_CONFIG_REG_WIDTH  = 16;
-parameter RX_STATUS_REG_WIDTH  = 16;
+parameter RX_STATUS_REG_WIDTH  = 8;
 
 
 wire                   in_fifo_read_empty;
@@ -56,6 +58,7 @@ wire       [33:0]      out_fifo_write_data;
 wire                   out_fifo_write_inc;
 AsyncFifo#(4,34) from_apb_fifo (.wr_data  (fifo_write_data),
                                 .wr_full  (fifo_write_full),
+                                .wr_empty (fifo_write_empty),
                                 .wr_inc   (fifo_write_inc),
                                 .wr_clk   (pclk),
                                 .rd_data  (in_fifo_read_data),
@@ -133,7 +136,7 @@ Fifo2TxRx#(TX_CONFIG_REG_WIDTH,
      .send_in_process  (rd_status_tx ),
      .status_changed   (status_changed_tx )
     );
-    SL_receiver res (
+    SL_receiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
         .rst_n                      (rst_n),
         .serial_line_zeroes_a       (SL0_in),
         .serial_line_ones_a         (SL0_in),
