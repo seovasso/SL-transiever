@@ -13,6 +13,7 @@ output  reg                 pslverr,
 //Fifo ports
 input                       fifo_read_empty,
 input                       fifo_write_full,
+input                       fifo_write_empty,
 input        [33:0]         fifo_read_data,
 output  reg                 fifo_read_inc,
 output  reg  [33:0]         fifo_write_data,
@@ -34,6 +35,8 @@ parameter APB_CONFIG_REG_WIDTH = 16;
 parameter APB_STATUS_REG_WIDTH = 16;
 parameter APB_CHANNEL_REG_WIDTH = 2;
 
+parameter CBF = 8,
+          CBE = 9;
 //States
 parameter IDLE        = 0,
           WRITE       = 1,
@@ -146,11 +149,13 @@ always @( posedge pclk, negedge preset_n ) begin
     fifo_read_inc   <= 0;
   end
   else begin
+    status_r[CBF] <= fifo_write_full;
+    status_r[CBE] <= fifo_write_empty;
     if (read_from_fifo_next) begin //reading from fifo buffer
       case (fifo_read_data [33:32])
         CONFIG_MODIFIER : config_r  <= fifo_read_data[APB_CONFIG_REG_WIDTH-1:0];
-        DATA_MODIFIER   : rec_data_r<= fifo_read_data[                 31:0];
-        STATUS_MODIFIER : status_r  <= fifo_read_data[APB_STATUS_REG_WIDTH-1:0];
+        DATA_MODIFIER   : rec_data_r<= fifo_read_data[31:0];
+        STATUS_MODIFIER : status_r  <= fifo_read_data[ 7:0];
         CHANNEL_MODIFIER: channel_r <= fifo_read_data[APB_CHANNEL_REG_WIDTH-1:0];
       endcase
       fifo_read_inc<=1;
