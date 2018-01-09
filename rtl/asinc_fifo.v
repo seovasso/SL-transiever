@@ -2,6 +2,7 @@ module AsyncFifo  #(parameter ADDR_SIZE = 4,
                     parameter DATA_SIZE = 8)
                     ( output      [DATA_SIZE-1:0] rd_data,
                       output  reg                 wr_full,
+                      output  reg                 wr_empty,
                       output  reg                 rd_empty,
                       input       [DATA_SIZE-1:0] wr_data,
                       input                       wr_inc,
@@ -68,13 +69,15 @@ always @(posedge rd_clk or negedge rd_rst_n)
 
   // write full part
   wire wr_full_val;
+  wire wr_emty_val;
 
   assign wr_full_val = wr_gray_next == {~rd_ptr_sync[ADDR_SIZE: ADDR_SIZE-1],
                                          rd_ptr_sync[ADDR_SIZE-2:0]};
+  assign wr_empty_val = wr_gray_next == rd_ptr_sync;
 
   always @(posedge wr_clk or negedge wr_rst_n)
-    if (!wr_rst_n) wr_full <= 0;
-    else           wr_full <= wr_full_val;
+    if (!wr_rst_n) {wr_full, wr_empty} <= {0,1};
+    else           {wr_full, wr_empty}<=  {wr_full_val, wr_empty_val};
 
     // double sync parts
     reg [ADDR_SIZE:0] rd_ptr_sync;
