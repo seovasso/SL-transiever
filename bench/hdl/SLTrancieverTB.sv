@@ -211,7 +211,7 @@ logic allTestsPassed;
     #10;
     readTransaction(STATUS_ADDR);
     readTransaction(DATA_ADDR);
-      writeTransaction(CONFIG_ADDR,32'd0|10'b000100000);
+    writeTransaction(CONFIG_ADDR,32'd0|10'b000100000);
     testMassage(16,1);
     #10;
     readTransaction(STATUS_ADDR);
