@@ -1,19 +1,21 @@
-module SL_receiver (
+module SL_receiver #(parameter STATUS_WIDTH = 16,
+                    parameter  CONFIG_WIDTH = 16)
+                    (
   //Common signals
   input wire rst_n,
   input wire clk, //16MHz
 
   // SL related signals
-  input wire serial_line_zeroes_a,
-  input wire serial_line_ones_a,
-  input wire [15:0]wr_config_w,
-  input wire       wr_enable, //signal enable write to config_r
+  input wire                    serial_line_zeroes_a,
+  input wire                    serial_line_ones_a,
+  input wire [CONFIG_WIDTH-1:0] wr_config_w,
+  input wire                    wr_enable, //signal enable write to config_r
 
   //Output data signals
-  output wire [15:0]status_w,
-  output wire [31:0]data_w,
-  output wire [15:0]r_config_w,
-  output reg        data_status_changed
+  output wire [STATUS_WIDTH-1:0]  status_w,
+  output wire [31:0]              data_w,
+  output wire [CONFIG_WIDTH-1:0]  r_config_w,
+  output reg                      data_status_changed
     );
 
 parameter STROB_POS = 8,
@@ -43,14 +45,14 @@ reg [31:0] buffered_data_r;        //last got SL word
 reg [ 5:0] cycle_cnt_r, bit_cnt_r; //misc counters
 reg parity_ones, parity_zeroes;    //parity registers
 
-reg [15:0] config_r;
+reg [CONFIG_WIDTH-1:0] config_r;
 parameter PCE  = 0, // parity check enable
           BQL  = 1, // bit quantity low bit
           BQH  = 6, // bit quantity high bit
           MODE = 7, // rx tx mode
           IRQM = 8; //interrupt request mode
 
-reg [15:0] status_r;
+reg [STATUS_WIDTH-1:0] status_r;
 parameter WLC = 0, //word length check result
           WRP = 1, //word receiving status
           WRF = 3, //word received flag
@@ -58,7 +60,7 @@ parameter WLC = 0, //word length check result
           LEF = 5; //level error on line flag
 
 wire bit_ended, bit_started;
-wire [15:0] config_r_next; //change config_r wire
+wire [CONFIG_WIDTH-1:0] config_r_next; //change config_r wire
 
 assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
 assign status_w = status_r;
@@ -115,8 +117,8 @@ always @(posedge clk, negedge rst_n) begin
     cycle_cnt_r[5:0]      <= 1'b0;
     bit_cnt_r[5:0]        <= 1'b0;
     buffered_data_r[31:0] <= 1'b0;
-    config_r[15:0]        <= 16'h0010;
-    status_r[15:0]        <= 1'b0;
+    config_r[CONFIG_WIDTH-1:0]        <= 16'h0010;
+    status_r[STATUS_WIDTH-1:0]        <= 1'b0;
     parity_zeroes         <= 1'b0;
     parity_ones           <= 1'b1;
   end else begin
@@ -133,7 +135,7 @@ always @(posedge clk, negedge rst_n) begin
               cycle_cnt_r <= 0;
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
-              status_r[15:0]      <= 0; //?????????????
+              status_r[STATUS_WIDTH-1:0]      <= 0; //?????????????
             end
         next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
