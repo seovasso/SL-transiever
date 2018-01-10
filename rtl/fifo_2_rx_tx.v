@@ -26,11 +26,11 @@ module Fifo2TxRx   #(parameter TX_CONFIG_REG_WIDTH = 16,
 
     // rx  communication ports
     output  reg  [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx,
-    output  reg          config_we_rx,
+    output  reg                             config_we_rx,
     input        [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx,
     input        [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx,
-    input        [31:0]  rd_data_rx,
-    input             data_status_changed_rx
+    input        [31:0]                     rd_data_rx,
+    input                                   data_status_changed_rx
     );
 
 reg channel_r;
