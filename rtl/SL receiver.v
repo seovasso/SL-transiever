@@ -18,7 +18,7 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
   output reg                      data_status_changed
     );
 
-parameter STROB_POS = 8,
+parameter STROB_POS = 7,
           CONFIG_ADDRESS  = 0'b0001,
           DATA_ADDRESS_WR = 0'b0010,
           DATA_ADDRESS_R  = 0'b0100,
@@ -62,13 +62,14 @@ parameter WLC = 0, //word length check result
 wire bit_ended, bit_started;
 wire [CONFIG_WIDTH-1:0] config_r_next; //change config_r wire
 
-assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
+
 assign status_w = status_r;
 assign r_config_w=config_r;
 assign data_w   = buffered_data_r;
 assign bit_ended   = (sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF) ? 1 : 0;
 assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[15:12] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
 assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
+//assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
 
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
@@ -89,9 +90,9 @@ always @* begin
                                 else                                                                   next_r[   BIT_WAIT_FLUSH] = 1'b1;
     state_r[BIT_WAIT_NO_FLUSH]:                                                                        next_r[     BIT_DETECTED] = 1'b1;
     state_r[ BIT_DETECTED]: if( cycle_cnt_r < STROB_POS )                                              next_r[     BIT_DETECTED] = 1'b1;
-                            else if( !serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[STOP_BIT] = 1'b1;
-                            else if( !serial_line_ones_a &&  serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[ ONE_BIT] = 1'b1;
-                            else if(  serial_line_ones_a && !serial_line_zeroes_a && cycle_cnt_r == STROB_POS ) next_r[ZERO_BIT] = 1'b1;
+                            else if( !sl1_tmp_r[0] && !sl0_tmp_r[0] && cycle_cnt_r == STROB_POS ) next_r[STOP_BIT] = 1'b1;
+                            else if( !sl1_tmp_r[0] &&  sl0_tmp_r[0] && cycle_cnt_r == STROB_POS ) next_r[ ONE_BIT] = 1'b1;
+                            else if(  sl1_tmp_r[0] && !sl0_tmp_r[0] && cycle_cnt_r == STROB_POS ) next_r[ZERO_BIT] = 1'b1;
                             else                                                                                next_r[ LEV_ERR] = 1'b1;
     state_r[     STOP_BIT]: if( bit_cnt_r[5:0] == config_r[BQH:BQL] + 1 && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )      next_r[GOT_WORD] = 1'b1;
                             else if( bit_cnt_r[5:0] == config_r[BQH:BQL] + 1  && config_r[PCE] &&  (parity_ones | parity_zeroes) )  next_r[ PAR_ERR] = 1'b1;
