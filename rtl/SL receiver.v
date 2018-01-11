@@ -19,6 +19,7 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
     );
 
 parameter STROB_POS = 7,
+          BIT_END_POS = 6, /*максимально допустимое расстояние до конца бита.*/
           CONFIG_ADDRESS  = 0'b0001,
           DATA_ADDRESS_WR = 0'b0010,
           DATA_ADDRESS_R  = 0'b0100,
@@ -66,8 +67,8 @@ wire [CONFIG_WIDTH-1:0] config_r_next; //change config_r wire
 assign status_w = status_r;
 assign r_config_w=config_r;
 assign data_w   = buffered_data_r;
-assign bit_ended   = (sl0_tmp_r[7:0] == 8'hFF && sl1_tmp_r[7:0] == 8'hFF) ? 1 : 0;
 assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[15:12] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
+assign bit_ended   = (sl0_tmp_r[15:12] == 4'h0 && sl0_tmp_r[3:0] == 4'hF) || (sl1_tmp_r[15:12] == 4'h0 && sl1_tmp_r[3:0] == 4'hF) ? 1 : 0;
 assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
 //assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
 
@@ -97,14 +98,15 @@ always @* begin
     state_r[     STOP_BIT]: if( bit_cnt_r[5:0] == config_r[BQH:BQL] + 1 && (!config_r[PCE] | !(parity_ones | parity_zeroes)) )      next_r[GOT_WORD] = 1'b1;
                             else if( bit_cnt_r[5:0] == config_r[BQH:BQL] + 1  && config_r[PCE] &&  (parity_ones | parity_zeroes) )  next_r[ PAR_ERR] = 1'b1;
                             else                                                                                                    next_r[ LEN_ERR] = 1'b1;
-    state_r[      ONE_BIT]: next_r[BIT_WAIT_FLUSH] = 1'b1;
-    state_r[     ZERO_BIT]: next_r[BIT_WAIT_FLUSH] = 1'b1;
-    state_r[     GOT_WORD]: next_r[BIT_WAIT_FLUSH] = 1'b1;
-    state_r[      PAR_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
-    state_r[      LEN_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
+    state_r[      ONE_BIT]: next_r[WAIT_BIT_END  ] = 1'b1;
+    state_r[     ZERO_BIT]: next_r[WAIT_BIT_END  ] = 1'b1;
+    state_r[     GOT_WORD]: next_r[WAIT_BIT_END  ] = 1'b1;
+    state_r[      PAR_ERR]: next_r[WAIT_BIT_END  ] = 1'b1;
+    state_r[      LEN_ERR]: next_r[WAIT_BIT_END  ] = 1'b1;
     state_r[      LEV_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
-    state_r[ WAIT_BIT_END]: if( bit_ended ) next_r[BIT_WAIT_FLUSH] = 1'b1;
-                            else            next_r[  WAIT_BIT_END] = 1'b1;
+    state_r[ WAIT_BIT_END]: if( bit_ended )                   next_r[BIT_WAIT_FLUSH] = 1'b1;
+                            else if (cycle_cnt_r>BIT_END_POS) next_r[LEV_ERR] = 1'b1;
+                            else                              next_r[  WAIT_BIT_END] = 1'b1;
     //default:                next_r[BIT_WAIT_FLUSH] = 1'b1;
   endcase
 end
@@ -136,15 +138,19 @@ always @(posedge clk, negedge rst_n) begin
               cycle_cnt_r <= 0;
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
+              cycle_cnt_r <= cycle_cnt_r + 1;
               status_r[STATUS_WIDTH-1:0]      <= 0; //?????????????
+              status_r[WLC] <= 0;
+              status_r[LEF] <= 0;
             end
         next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
-              status_r[WLC] <= 0;
               status_r[WRP] <= 1;
               status_r[WRF] <= 0;
               status_r[PEF] <= 0;
-              status_r[LEF] <= 0;
+            end
+        next_r[WAIT_BIT_END]: begin
+              cycle_cnt_r <= cycle_cnt_r + 1;
             end
         next_r[ONE_BIT]: begin
               //Store data in high bits of register
@@ -159,11 +165,11 @@ always @(posedge clk, negedge rst_n) begin
               bit_cnt_r     <= bit_cnt_r + 1;
             end
         next_r[GOT_WORD]: begin
+              cycle_cnt_r     <= 1;
               parity_zeroes   <= 0;
               parity_ones     <= 1;
               shift_data_r    <= 0;
               bit_cnt_r       <= 0;
-              cycle_cnt_r     <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
               status_r[WRF]   <= 1;
@@ -174,10 +180,10 @@ always @(posedge clk, negedge rst_n) begin
 
             end
         next_r[PAR_ERR]: begin
+              cycle_cnt_r     <= 1;
               parity_zeroes   <= 0;
               parity_ones     <= 1;
               shift_data_r    <= 0;
-              bit_cnt_r       <= 0;
               cycle_cnt_r     <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
@@ -188,6 +194,7 @@ always @(posedge clk, negedge rst_n) begin
 
             end
         next_r[LEN_ERR]: begin
+              cycle_cnt_r     <= 1;
               parity_zeroes   <= 0;
               parity_ones     <= 1;
               shift_data_r    <= 0;
@@ -213,7 +220,6 @@ always @(posedge clk, negedge rst_n) begin
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 1;
               buffered_data_r <= 32'h0000_0000;
-
             end
       endcase
     end
