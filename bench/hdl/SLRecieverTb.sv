@@ -37,38 +37,41 @@ task writeTestResult;
      currTestPassed = 0;
      allTestsPassed = 0;
    end
-   $display ("Test # %d: %s : %s ",testNumber, testName, (currTestPassed? "OK" : "failed"));
+   $display ("Test : %s : %s ", testName, (currTestPassed? "OK" : "failed"));
    currTestPassed = 1;
  end
 endtask
 
-
+task makeConfig;
+  input int confLength;//длинна сообщения
+  input bit PCE_on;//включить контроль четности
+    begin
+      wr_config_w=(confLength<<1)|PCE_on;//задаем конфигруацию
+      wr_enable=1;
+      #(clkPeriod);
+      wr_enable=0;
+      wr_config_w=16'h0000;
+    end
+endtask
 task testMassage;//конфигуриррует приемник и отправляет SL посылку
-         input int mesLength;//длинна сообщения
-         input int confLength;//сконфигурированая длинна
-         input bit PCE_on;//включить контроль четности
+         input int msgLength;//сконфигурированая длинна
          input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
   begin
-  mes=$urandom_range(2**mesLength-1,0);
-  wr_config_w=(confLength<<1)|PCE_on;//задаем конфигруацию
-  wr_enable=1;
-  #(clkPeriod);
-  wr_enable=0;
-  wr_config_w=16'h0000;
-  slTransaction(mes,mesLength,parityRight);
+  msg=$urandom_range(2**msgLength-1,0);
+  slTransaction(msg,msgLength,parityRight);
   end
 endtask
 task slTransaction;
-          input bit [31:0] mess;//отправляемое сообщение
-          input int mesLength;//длинна сообщения
+          input bit [31:0] msg;//отправляемое сообщение
+          input int msgLength;//длинна сообщения
           input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
           logic        parSl0;
           logic        parSl1;
    begin
    parSl0 =1'b1;
    parSl1 =1'b0;
-     for (int i=0; i < mesLength; i=i+1) begin
-      if(!mess[i])begin
+     for (int i=0; i < msgLength; i=i+1) begin
+      if(!msg[i])begin
            parSl0 = parSl0^1;
            #(SlClkLength/2) inSl0=1;
            inSl0=0;
@@ -107,13 +110,13 @@ task slTransaction;
      #(SlClkLength/2);
      end
 endtask
- bit [31:0] mes;
- bit [31:0] lastCorrMess;
+ bit [31:0] msg;
+ bit [31:0] lastCorrMsg;
  initial forever #(clkPeriod/2)clk=~clk;
 
     initial begin
         clk=0;
-        currTestPassed = 0;
+        currTestPassed = 1;
         allTestsPassed = 1;
         wr_enable = 0;
         wr_config_w = 16'h0014;
@@ -125,66 +128,145 @@ endtask
         #30
         rst_n = 1;
         #100
-        for (int i=1;i<=3;i=i+1)begin
-          int l = 8+$urandom_range(1,16)*2;
-          $display("Test #%d: 1 correct message width PCE=0 l=%d",i,l);
-          testMassage(l,l,0,1);
-          writeTestResult((mes == data_w && status_w==16'b1000), 1, "");
+        for (SlClkLength = 32*clkPeriod; SlClkLength>=8*clkPeriod; SlClkLength/=2) begin // testing on all frequences
+            $display ("Running all test on frequency: %d kHz", 16000/ SlClkLength *clkPeriod);
+            for (int i=8;i<=32;i=i+2)begin // test on all word length
+              makeConfig(i,0);
+              testMassage(i,1);
+                if (msg==data_w && status_w==16'b1000)begin
+                  int gi;//$display("OK \n",i); // do nothing
+                end else begin
+                  $display("error with length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b1000);
+                  currTestPassed = 0; //if erroe occurs we write error message
+                end
+            end
+            writeTestResult(currTestPassed, 0, "1.a: 1 correct message all Length and PCE=0");
+            for (int i=8;i<=32;i=i+2)begin // test on all word length
+                makeConfig(i,1);
+                testMassage(i,1);
+                  if (msg==data_w && status_w==16'b1000)begin
+                    int gi;//$display("OK \n",i); // do nothing
+                  end else begin
+                    $display("error with length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b1000);
+                    currTestPassed = 0; //if erroe occurs we write error message
+                  end
+            end
+            writeTestResult(currTestPassed, 0, "1.b: 1 correct message all Length and PCE=1  ");
 
-          $display("Test #1.%d.2 : 1 correct message with PCE=1 l=%d",i,l);
-          testMassage(l,l,1,1);
-          writeTestResult((mes == data_w && status_w==16'b1000), 1, "");
+            for (int i=8;i<=32;i=i+2)begin // test on all word length
+                makeConfig(i,0);
+                testMassage(i,1);
+                testMassage(i,1);
+                testMassage(i,1);
+                  if (msg==data_w && status_w==16'b1000)begin
+                    int gi;//$display("OK \n",i); // do nothing
+                  end else begin
+                    $display("error with length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b1000);
+                    currTestPassed = 0; //if erroe occurs we write error message
+                  end
+             end
+             writeTestResult(currTestPassed, 0, "2.a: 3 correct message all Length and PCE=0");
+             for (int i=8;i<=32;i=i+2)begin // test on all word length
+                 makeConfig(i,1);
+                 testMassage(i,1);
+                 testMassage(i,1);
+                 testMassage(i,1);
+                   if (msg==data_w && status_w==16'b1000)begin
+                     int gi;//$display("OK \n",i); // do nothing
+                   end else begin
+                     $display("error with length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b1000);
+                     currTestPassed = 0; //if erroe occurs we write error message
+                   end
+              end
+              writeTestResult(currTestPassed, 0, "2.b: 3 correct message all Length and PCE=1");
+
+           for (int i=8;i<=32;i=i+2)begin // test on all word length
+               makeConfig(i,1);
+               testMassage(i,1);
+               lastCorrMsg = msg;
+               testMassage(i,0);
+               if (data_w != lastCorrMsg || status_w!=16'b11000)begin
+                 $display("error with parity error, msg length = %d, %d != %d, %d != %d", i,  data_w, lastCorrMsg,  status_w, 16'b11000);
+                 currTestPassed = 0; //if erroe occurs we write error message
+               end
+               testMassage(i,1);
+               if (msg==data_w && status_w==16'b1000)begin
+                 int gi;//$display("OK \n",i); // do nothing
+               end else begin
+                 $display("error with length = %d, %d != %d, %d != %d", i,  data_w, msg, status_w, 16'b1000);
+                 currTestPassed = 0; //if erroe occurs we write error message
+               end
+            end
+            writeTestResult(currTestPassed, 0, "3.a: one correct message then one with parity error and then one correct, PCE=1");
+
+            for (int i=8;i<=32;i=i+2)begin // test on all word length
+                makeConfig(i,1);
+                testMassage(i,1);
+                lastCorrMsg = msg;
+                testMassage(i+2,0);
+                if (data_w != lastCorrMsg || status_w!=16'b1001)begin
+                  $display("error with length error, msg length = %d, %d != %d, %d != %d", i, msg, data_w,  status_w, 16'b1001);
+                  currTestPassed = 0; //if erroe occurs we write error message
+                end
+                testMassage(i,1);
+                if (msg==data_w && status_w==16'b1000)begin
+                  int gi;//$display("OK \n",i); // do nothing
+                end else begin
+                  $display("error with length = %d, %d != %d, %d != %d", i,  data_w, msg, status_w, 16'b1000);
+                  currTestPassed = 0; //if erroe occurs we write error message
+                end
+             end
+             writeTestResult(currTestPassed, 0, "3.b: one correct message then one with length error and then one correct");
 
 
-        //  int messCount = $urandom_range(4,10);
-          $display("Test #2.%d:2.2 : %d correct message with PCE=1 l=%d",i,5,l);
-          for (int iterator = 0; iterator < 5; iterator++)
-              testMassage(l,l,1,1);
-          writeTestResult((mes == data_w && status_w==16'b1000), 1, "");
+             for (int i=8;i<=32;i=i+2)begin // test on all word length
+                 makeConfig(i,0);
+                 testMassage(i,1);
+                 lastCorrMsg = msg;
+                 testMassage(i,0);
+                 if (data_w != msg || status_w!=16'b11000)begin
+                   $display("error with parity error, msg length = %d, %d != %d, %d != %d", i, msg, data_w,  status_w, 16'b11000);
+                   currTestPassed = 0; //if erroe occurs we write error message
+                 end
+                 testMassage(i,1);
+                 if (msg==data_w && status_w==16'b1000)begin
+                   int gi;//$display("OK \n",i); // do nothing
+                 end else begin
+                   $display("error with length = %d, %d != %d, %d != %d", i,  data_w, msg, status_w, 16'b1000);
+                   currTestPassed = 0; //if erroe occurs we write error message
+                 end
+              end
+              writeTestResult(currTestPassed, 0, "3.c: one correct message then one with parity error and then one correct, PCE=0");
 
-        $display("Test 3.%d:2 : 5 correct message then 1 incorrect then 5 correct  l=%d",i,l);
-        for (int iterator = 0; iterator < 5; iterator++)
-            testMassage(l,l,1,1);
+            $display("\n");
+          end
 
-            testMassage(l+2,l,1,1);//некорректное
-            for (int iterator = 0; iterator < 5; iterator++)
-                testMassage(l,l,1,1);
-        writeTestResult((mes == data_w && status_w==16'b1000), 1, "");
 
-        $display("Test 4.%d:2 : 5 incorrect message  l=%d",i,l);
 
-        for (int iterator = 0; iterator < 5; iterator++) begin
-        testMassage(l+$urandom_range(1,3)*2,l,1,1);//некорректное
+
+          // SlClkLength = 8*clkPeriod;
+          // makeConfig(8,1);
+          // testMassage(8,1);
+          // lastCorrMsg = msg;
+          // testMassage(8,0);
+          // writeTestResult((data_w == lastCorrMsg && status_w==16'b11000), 0, "");
+          // testMassage(8,1);
+          // writeTestResult((data_w==msg && data_w != lastCorrMsg && status_w==16'b1000), 0, "");
+          $stop;
         end
-        writeTestResult((status_w==16'b1001), 1, "");
 
+        // for (int i=1;i<=3;i=i+1)begin
+        //   int l = 8+$urandom_range(1,16)*2;
+        //   $display("Test #%d: 1 correct message width PCE=0 l=%d",i,l);
+        //   testMassage(l,l,0,1);
+        //   writeTestResult((mes == data_w && status_w==16'b1000), 1, "");
+      //
+      // if(allTestsPassed) begin
+      //   $display("All test passed");
+      //  end else $display("Some tests failed");
+      //  $stop;
+      // end
 
-      $display("Test 5.a.2. %d   incorrect message L>N  l=%d",i,l);
-
-      testMassage(l+$urandom_range(1,3)*2,l,1,1);//некорректное сообщение
-      writeTestResult((status_w==16'b1001), 0, "");
-
-
-    $display( "Test 5.a.1. %d  : incorrect message L<N  l=%d", i, l );
-    testMassage(l-$urandom_range(1,3)*2,l,1,1);//некорректное сообщение
-    writeTestResult((status_w==16'b1001), 0, "");
-
-    $display( "Test 5.b.1. %d  :  message with parity error l=%d PCE=1", i, l );
-    testMassage(l,l,1,1);//корректное сообщение
-    lastCorrMess=mes;
-    testMassage(l,l,1,0);//некорректное сообщение
-    writeTestResult((status_w==16'b11000 && lastCorrMess == 0), 0, "");
-
-    $display( "Test 5.b.2. %d  :  message with parity error l=%d PCE=0", i, l );
-    testMassage(l,l,0,0);//некорректное сообщение
-    writeTestResult((status_w==16'b01000 && mes == data_w), 0, "");
-
-      if(allTestsPassed) begin
-        $display("All test passed");
-       end else $display("Some tests failed");
-       $stop;
-      end
-    end
 
 
 endmodule
