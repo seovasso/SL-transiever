@@ -18,8 +18,8 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
   output reg                      data_status_changed
     );
 
-parameter STROB_POS = 7,
-          BIT_END_POS = 6, /*максимально допустимое расстояние до конца бита.*/
+parameter STROB_POS = 3,
+          BIT_END_POS = 4, /*максимально допустимое расстояние до конца бита.*/
           CONFIG_ADDRESS  = 0'b0001,
           DATA_ADDRESS_WR = 0'b0010,
           DATA_ADDRESS_R  = 0'b0100,
@@ -67,8 +67,8 @@ wire [CONFIG_WIDTH-1:0] config_r_next; //change config_r wire
 assign status_w = status_r;
 assign r_config_w=config_r;
 assign data_w   = buffered_data_r;
-assign bit_started = (sl0_tmp_r[15:12] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[15:12] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
-assign bit_ended   = (sl0_tmp_r[15:12] == 4'h0 && sl0_tmp_r[3:0] == 4'hF) || (sl1_tmp_r[15:12] == 4'h0 && sl1_tmp_r[3:0] == 4'hF) ? 1 : 0;
+assign bit_started = (sl0_tmp_r[11:8] == 4'hF && sl0_tmp_r[3:0] == 4'h0) || (sl1_tmp_r[11:8] == 4'hF && sl1_tmp_r[3:0] == 4'h0) ? 1 : 0;
+assign bit_ended   = (sl0_tmp_r[11:8] == 4'h0 && sl0_tmp_r[3:0] == 4'hF) || (sl1_tmp_r[11:8] == 4'h0 && sl1_tmp_r[3:0] == 4'hF) ? 1 : 0;
 assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
 //assign config_r_next = (wr_enable && bit_cnt_r == 6'd0 && wr_config_w[BQH:BQL]>6'd7)? wr_config_w: config_r;
 
@@ -173,7 +173,7 @@ always @(posedge clk, negedge rst_n) begin
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
               status_r[WRF]   <= 1;
-              status_r[PEF]   <= 0;
+              status_r[PEF]   <= (parity_ones | parity_zeroes);
               status_r[LEF]   <= 0;
               //Dont forget to wipeout parity bit
               buffered_data_r <= shift_data_r & ~( 1 << config_r[BQH:BQL] );
@@ -185,12 +185,13 @@ always @(posedge clk, negedge rst_n) begin
               parity_ones     <= 1;
               shift_data_r    <= 0;
               cycle_cnt_r     <= 0;
+              bit_cnt_r       <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
               status_r[WRF]   <= 1;
               status_r[PEF]   <= 1;
               status_r[LEF]   <= 0;
-              buffered_data_r <= 32'h0000_0000;
+              //buffered_data_r <= 32'h0000_0000;
 
             end
         next_r[LEN_ERR]: begin
