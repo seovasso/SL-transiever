@@ -206,7 +206,7 @@ always @(posedge clk, negedge rst_n) begin
               status_r[WRF]   <= 1;
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 0;
-              buffered_data_r <= 32'h0000_0000;
+
 
             end
         next_r[LEV_ERR]: begin
