@@ -231,8 +231,8 @@
           <y:Path sx="0.0" sy="33.0" tx="0.0" ty="-32.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="33.40234375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="63.3671875" x="-31.68359375" y="130.298828125">bit_started 
-bit_cnt==0<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="33.40234375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="66.712890625" x="-33.3564453125" y="130.298828125">bit_started 
+bit_cnt == 0<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -432,26 +432,26 @@ config_r[PCE] &amp;&amp;  (parity_ones | parity_zeroes)<y:LabelModel>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e12" source="n6" target="n0">
+    <edge id="e12" source="n6" target="n10">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
-          <y:Path sx="-68.0" sy="-0.0" tx="-20.0" ty="-31.46875">
+          <y:Path sx="-68.0" sy="-0.0" tx="-51.45554740964394" ty="-20.93205307218834">
             <y:Point x="131.126213592233" y="1605.618122977346"/>
             <y:Point x="0.0" y="1300.0"/>
             <y:Point x="-70.56652427184466" y="117.58498381877024"/>
-            <y:Point x="620.0" y="280.0"/>
+            <y:Point x="241.96504854368905" y="29.726860841423814"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e13" source="n7" target="n0">
+    <edge id="e13" source="n7" target="n10">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
-          <y:Path sx="-68.0" sy="-0.0" tx="-67.0" ty="-0.0">
+          <y:Path sx="-68.0" sy="-0.0" tx="-67.9833984375" ty="0.0">
             <y:Point x="-100.32362459546925" y="1835.237324703344"/>
             <y:Point x="-324.1984897518877" y="198.2368932038835"/>
           </y:Path>
@@ -464,11 +464,11 @@ config_r[PCE] &amp;&amp;  (parity_ones | parity_zeroes)<y:LabelModel>
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
-          <y:Path sx="0.0" sy="32.033203125" tx="-50.0" ty="21.96875">
+          <y:Path sx="0.0" sy="32.033203125" tx="-65.60177993527441" ty="-180.3189994606254">
             <y:Point x="593.2163322545848" y="1443.3725625674215"/>
             <y:Point x="40.0" y="1180.0"/>
             <y:Point x="40.0" y="400.0"/>
-            <y:Point x="372.97993527508095" y="341.0778856526429"/>
+            <y:Point x="336.2265372168285" y="227.31736785329014"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -480,8 +480,8 @@ config_r[PCE] &amp;&amp;  (parity_ones | parity_zeroes)<y:LabelModel>
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="-68.0" sy="-0.0" tx="-40.0" ty="26.46875">
-            <y:Point x="-104.51521035598705" y="1260.0129449838187"/>
-            <y:Point x="201.76310679611652" y="441.0019417475728"/>
+            <y:Point x="313.88284789644035" y="1087.7313915857603"/>
+            <y:Point x="346.69838187702277" y="512.1022653721683"/>
             <y:Point x="600.0" y="420.0"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
@@ -530,25 +530,50 @@ config_r[PCE] &amp;&amp;  (parity_ones | parity_zeroes)<y:LabelModel>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e18" source="n5" target="n0">
+    <edge id="e18" source="n4" target="n10">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="1173.9128802589" y="568.8216181229774"/>
+            <y:Point x="954.5935275080909" y="368.5359223300972"/>
+            <y:Point x="954.5935275080909" y="358.0349514563108"/>
+            <y:Point x="695.5695792880261" y="158.51650485436897"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e19" source="n4" target="n0">
+    <edge id="e19" source="n10" target="n9">
       <data key="d9"/>
       <data key="d10">
         <y:BezierEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="921.8895792880262" y="538.0187702265373"/>
-            <y:Point x="921.8895792880262" y="536.6186407766991"/>
+            <y:Point x="232.02281553398097" y="568.909061488674"/>
+            <y:Point x="210.1457928802593" y="650.9478964401303"/>
+            <y:Point x="278.51148867313964" y="1099.4268608414252"/>
+            <y:Point x="519.1587378640783" y="1214.281229773464"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="150.390625" x="-305.2340229041185" y="188.68426047661904">cycle_cnt &gt; BIT_END_POS<y:LabelModel>
+              <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartEdgeLabelModelParameter angle="0.0" distance="30.0" distanceToCenter="true" position="right" ratio="0.5" segment="0"/>
+            </y:ModelParameter>
+            <y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          </y:EdgeLabel>
+        </y:BezierEdge>
+      </data>
+    </edge>
+    <edge id="e20" source="n5" target="n10">
+      <data key="d9"/>
+      <data key="d10">
+        <y:BezierEdge>
+          <y:Path sx="0.0" sy="0.0" tx="67.9833984375" ty="0.0">
+            <y:Point x="1032.761165048545" y="333.2174705777758"/>
+            <y:Point x="1032.761165048545" y="333.2174705777758"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
