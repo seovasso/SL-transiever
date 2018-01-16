@@ -139,9 +139,10 @@ always @(posedge clk, negedge rst_n) begin
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
-              status_r[STATUS_WIDTH-1:0]      <= 0; //?????????????
-              status_r[WLC] <= 0;
+              //status_r[STATUS_WIDTH-1:0]      <= 0; //?????????????
+              //status_r[WLC] <= 0;
               status_r[LEF] <= 0;
+              status_r[WRP] <= 1;
             end
         next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;

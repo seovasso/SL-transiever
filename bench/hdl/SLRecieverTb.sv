@@ -61,6 +61,16 @@ task testMassage;//конфигуриррует приемник и отправ
   slTransaction(msg,msgLength,parityRight);
   end
 endtask
+task testMassageWithLE;//конфигуриррует приемник и отправляет SL посылку
+         input int msgLength;//сконфигурированая длинна
+         input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
+         int errorPlace; //переменная для определения бита с LE ошибкой
+  begin
+  msg=$urandom_range(2**msgLength-1,0);
+  errorPlace = $urandom_range(msgLength-1,0);
+  slTransactionWithLevelError(msg,msgLength,parityRight,errorPlace);
+  end
+endtask
 task slTransaction;
           input bit [31:0] msg;//отправляемое сообщение
           input int msgLength;//длинна сообщения
@@ -85,6 +95,59 @@ task slTransaction;
           inSl1=0;
           #(SlClkLength);
           inSl1=1;
+          #(SlClkLength/2);
+      end
+     end
+     inSl1 = 1;
+     inSl0 = 1;
+     #(SlClkLength/2);
+     if (parityRight)begin
+       inSl0 = parSl0; // бит четности по 0
+       inSl1 = parSl1; // бит четности по 1
+     end else begin
+       inSl0 = !parSl0; // неправильный бит четности по 0
+       inSl1 = !parSl1; // неправильный бит четности по 1
+     end
+     #(SlClkLength);
+     inSl1 = 1;
+     inSl0 = 1;
+     #(SlClkLength);
+     inSl0=0;
+     inSl1=0;
+     #(SlClkLength);
+     inSl0=1;
+     inSl1=1;
+     #(SlClkLength/2);
+     end
+endtask
+task slTransactionWithLevelError;
+          input bit [31:0] msg;//отправляемое сообщение
+          input int msgLength;//длинна сообщения
+          input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
+          input int defectBitNumber;
+          logic        parSl0;
+          logic        parSl1;
+   begin
+   parSl0 =1'b1;
+   parSl1 =1'b0;
+     for (int i=0; i < msgLength; i=i+1) begin
+      if(!msg[i])begin
+           parSl0 = parSl0^1;
+           #(SlClkLength/2) inSl0=1;
+           inSl0 = 0;
+           #(SlClkLength/2);
+           if (defectBitNumber == i) inSl1 = 0;
+           #(SlClkLength/2);
+           inSl0=1;
+           #(SlClkLength/2);
+      end else begin
+          parSl1 = parSl1^1;
+          #(SlClkLength/2);
+          inSl1=0;
+          #(SlClkLength/2);
+          if (defectBitNumber == i) inSl0 = 0;
+          #(SlClkLength/2);
+           inSl1=1;
           #(SlClkLength/2);
       end
      end
@@ -244,14 +307,18 @@ endtask
 
 
 
-          // SlClkLength = 8*clkPeriod;
+          SlClkLength = 8*clkPeriod;
+          makeConfig(8,1);
+          testMassage(8,1);
+          lastCorrMsg = msg;
+          testMassage(8,0);
+          writeTestResult((data_w == lastCorrMsg && status_w==16'b11000), 0, "");
+          testMassage(8,1);
+          writeTestResult((data_w==msg && data_w != lastCorrMsg && status_w==16'b1000), 0, "");
+
+
           // makeConfig(8,1);
-          // testMassage(8,1);
-          // lastCorrMsg = msg;
-          // testMassage(8,0);
-          // writeTestResult((data_w == lastCorrMsg && status_w==16'b11000), 0, "");
-          // testMassage(8,1);
-          // writeTestResult((data_w==msg && data_w != lastCorrMsg && status_w==16'b1000), 0, "");
+          // testMassageWithLE(8,1);
           $stop;
         end
 
