@@ -227,10 +227,11 @@ always @(posedge clk, negedge rst_n) begin
 end
 wire data_status_changed_next;
 assign data_status_changed_next =
-      (next_r[LEV_ERR ]     == 1'b1 ||
-       next_r[LEN_ERR ]     == 1'b1 ||
-       next_r[PAR_ERR ]     == 1'b1 ||
-       next_r[GOT_WORD]     == 1'b1 ||
+      (next_r[LEV_ERR ]              == 1'b1 ||
+       next_r[LEN_ERR ]              == 1'b1 ||
+       next_r[PAR_ERR ]              == 1'b1 ||
+       next_r[GOT_WORD]              == 1'b1 ||
+       next_r[BIT_WAIT_NO_FLUSH]     == 1'b1 ||
        next_r[BIT_DETECTED] == 1'b1 && (!status_r[WRP] && cycle_cnt_r == 0)
        )? 1:0;
 always @(posedge clk, negedge rst_n)
