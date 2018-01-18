@@ -69,7 +69,7 @@ always @* begin
     state_r[READ]:                                                    next_r[ READ_END] = 1'b1 ;
     state_r[READ_END]:                                                next_r[     IDLE] = 1'b1 ;
     state_r[WRITE_END]:                                               next_r[     IDLE] = 1'b1 ;
-    default:                                                          next_r[     IDLE] = 1'b1 ;
+    //default:                                                          next_r[     IDLE] = 1'b1 ;
   endcase
 end
 
