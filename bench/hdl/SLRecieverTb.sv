@@ -120,6 +120,33 @@ task slTransaction;
      #(SlClkLength/2);
      end
 endtask
+task bitPulse;
+  input logic Bit;
+  input int bitLength;
+  fork
+  begin
+    if(Bit) begin
+      inSl1=0;
+      #(bitLength);
+      inSl1=1;
+
+    end else begin
+      inSl1=1;
+      #(bitLength);
+    end
+  end
+  begin
+    if(!Bit) begin
+      inSl0=0;
+      #(bitLength);
+      inSl0=1;
+    end else begin
+      inSl0=1;
+      #(bitLength);
+    end
+  end
+  join
+endtask
 task slTransactionWithLevelError;
           input bit [31:0] msg;//отправляемое сообщение
           input int msgLength;//длинна сообщения
@@ -301,20 +328,56 @@ endtask
               end
               writeTestResult(currTestPassed, 0, "3.c: one correct message then one with parity error and then one correct, PCE=0");
 
+              for (int i=8;i<=32;i=i+2)begin // test on all word length
+                  makeConfig(i,0);
+                  testMassage(i,1);
+                  lastCorrMsg = msg;
+                  #40
+                  bitPulse(0,1400);
+
+                  if (status_w[5] != 1)begin
+                    $display("error with level error, msg length = %d, %d != %d, %d != %d", i, lastCorrMsg , data_w,  status_w, 16'b100000);
+                    currTestPassed = 0; //if erroe occurs we write error message
+                  end
+                  #40
+                  bitPulse(1,1400);
+                  if (status_w[5] != 1)begin
+                    $display("error with level error, msg length = %d, %d != %d, %d != %d", i, lastCorrMsg , data_w,  status_w, 16'b100000);
+                    currTestPassed = 0; //if erroe occurs we write error message
+                  end
+                  #40
+                  testMassage(i,1);
+                  if (msg==data_w && status_w==16'b1000)begin
+                    int gi;//$display("OK \n",i); // do nothing
+                  end else begin
+                    $display("error with length = %d, %d != %d, %d != %d", i,  data_w, msg, status_w, 16'b1000);
+                    currTestPassed = 0; //if erroe occurs we write error message
+                  end
+               end
+               writeTestResult(currTestPassed, 0, "3.d: one correct message then level error and then one correct");
+
             $display("\n");
           end
 
 
 
 
-          SlClkLength = 8*clkPeriod;
-          makeConfig(8,1);
-          testMassage(8,1);
-          lastCorrMsg = msg;
-          testMassage(8,0);
-          writeTestResult((data_w == lastCorrMsg && status_w==16'b11000), 0, "");
-          testMassage(8,1);
-          writeTestResult((data_w==msg && data_w != lastCorrMsg && status_w==16'b1000), 0, "");
+          // SlClkLength = 32*clkPeriod;
+          // makeConfig(8,1);
+          // testMassage(8,1);
+          // lastCorrMsg = msg;
+          // writeTestResult((data_w==msg && data_w != lastCorrMsg && status_w==16'b1000), 0, "");
+          // #40
+          // bitPulse(0,1400);
+          // writeTestResult(( status_w==16'b100000), 0, "");
+          // #40
+          // //writeTestResult((data_w == lastCorrMsg && status_w==16'b101000), 0, "");
+          // bitPulse(1,1400);
+          // writeTestResult(( status_w==16'b100000), 0, "");
+          // #40
+          //
+          // testMassage(8,1);
+
 
 
           // makeConfig(8,1);

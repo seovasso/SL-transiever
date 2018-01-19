@@ -19,7 +19,7 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
     );
 
 parameter STROB_POS = 3,
-          BIT_END_POS = 4, /*максимально допустимое расстояние до конца бита.*/
+          BIT_END_POS = 32, /*максимально допустимое расстояние до конца бита.*/
           CONFIG_ADDRESS  = 0'b0001,
           DATA_ADDRESS_WR = 0'b0010,
           DATA_ADDRESS_R  = 0'b0100,
@@ -105,7 +105,7 @@ always @* begin
     state_r[      LEN_ERR]: next_r[WAIT_BIT_END  ] = 1'b1;
     state_r[      LEV_ERR]: next_r[BIT_WAIT_FLUSH] = 1'b1;
     state_r[ WAIT_BIT_END]: if( bit_ended )                   next_r[BIT_WAIT_FLUSH] = 1'b1;
-                            else if (cycle_cnt_r>BIT_END_POS) next_r[LEV_ERR] = 1'b1;
+                            else if (cycle_cnt_r >= BIT_END_POS) next_r[LEV_ERR] = 1'b1;
                             else                              next_r[  WAIT_BIT_END] = 1'b1;
     //default:                next_r[BIT_WAIT_FLUSH] = 1'b1;
   endcase
@@ -134,20 +134,20 @@ always @(posedge clk, negedge rst_n) begin
             cycle_cnt_r         <= 0;
             config_r  <= config_r_next;
           end
-        next_r[STOP_BIT], next_r[WAIT_BIT_END]: begin
+        next_r[STOP_BIT]: begin
               cycle_cnt_r <= 0;
             end
         next_r[BIT_WAIT_NO_FLUSH]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
               //status_r[STATUS_WIDTH-1:0]      <= 0; //?????????????
-              //status_r[WLC] <= 0;
+              status_r[WLC] <= 0;
               status_r[LEF] <= 0;
               status_r[WRP] <= 1;
             end
         next_r[BIT_DETECTED]: begin
               cycle_cnt_r <= cycle_cnt_r + 1;
               status_r[WRP] <= 1;
-              status_r[WRF] <= 0;
+              //status_r[WRF] <= 0;
               status_r[PEF] <= 0;
             end
         next_r[WAIT_BIT_END]: begin
@@ -185,7 +185,6 @@ always @(posedge clk, negedge rst_n) begin
               parity_zeroes   <= 0;
               parity_ones     <= 1;
               shift_data_r    <= 0;
-              cycle_cnt_r     <= 0;
               bit_cnt_r       <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
@@ -201,7 +200,6 @@ always @(posedge clk, negedge rst_n) begin
               parity_ones     <= 1;
               shift_data_r    <= 0;
               bit_cnt_r       <= 0;
-              cycle_cnt_r     <= 0;
               status_r[WLC]   <= 1;
               status_r[WRP]   <= 0;
               status_r[WRF]   <= 1;
