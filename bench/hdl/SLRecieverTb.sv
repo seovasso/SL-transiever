@@ -13,8 +13,10 @@ module SlRecieverTb();
      logic [31:0] data_w;
      logic [15:0] status_w;
      logic data_status_changed;
+     logic word_picked;
 
  SL_receiver res (
+     .word_picked                (word_picked),
      .rst_n                      (rst_n),
      .serial_line_zeroes_a       (inSl0),
      .serial_line_ones_a         (inSl1),
@@ -205,6 +207,7 @@ endtask
  initial forever #(clkPeriod/2)clk=~clk;
 
     initial begin
+        word_picked = 0;
         clk=0;
         currTestPassed = 1;
         allTestsPassed = 1;
@@ -356,6 +359,27 @@ endtask
                end
                writeTestResult(currTestPassed, 0, "3.d: one correct message then level error and then one correct");
 
+               for (int i=8;i<=32;i=i+2)begin // test on all word length
+                 makeConfig(i,0);
+                 testMassage(i,1);
+                   if (msg==data_w && status_w==16'b1000)begin
+                     int gi;//$display("OK \n",i); // do nothing
+                   end else begin
+                     $display("error with length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b1000);
+                     currTestPassed = 0; //if erroe occurs we write error message
+                   end
+                   #clkPeriod;
+                   word_picked = 1;
+                   #clkPeriod;
+                   word_picked = 0;
+                   if (msg==data_w && status_w==16'b0000)begin
+                     int gi;//$display("OK \n",i); // do nothing
+                   end else begin
+                     $display("error with word_picked with msg length = %d, %d != %d, %d != %d", i, msg, data_w, status_w, 16'b0000);
+                     currTestPassed = 0; //if erroe occurs we write error message
+                   end
+               end
+               writeTestResult(currTestPassed, 0, "5.e: word_picked test");
             $display("\n");
           end
 

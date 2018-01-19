@@ -8,9 +8,11 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
   // SL related signals
   input wire                    serial_line_zeroes_a,
   input wire                    serial_line_ones_a,
+
+  // control signals
   input wire [CONFIG_WIDTH-1:0] wr_config_w,
   input wire                    wr_enable, //signal enable write to config_r
-
+  input wire                    word_picked, // signal reset the WRF flag
   //Output data signals
   output wire [STATUS_WIDTH-1:0]  status_w,
   output wire [31:0]              data_w,
@@ -127,6 +129,7 @@ always @(posedge clk, negedge rst_n) begin
   end else begin
       sl0_tmp_r[15:0] <= ( sl0_tmp_r << 1 ) | serial_line_zeroes_a ;
       sl1_tmp_r[15:0] <= ( sl1_tmp_r << 1 ) | serial_line_ones_a;
+      if (word_picked && !next_r[GOT_WORD]) status_r [WRF] <=0; // сброс флага о принятом слове при прочтении слова
 
       case( 1'b1 ) // synopsys parallel_case
       next_r[BIT_WAIT_FLUSH]: begin
@@ -188,7 +191,7 @@ always @(posedge clk, negedge rst_n) begin
               bit_cnt_r       <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
-              status_r[WRF]   <= 1;
+              //status_r[WRF]   <= 1;
               status_r[PEF]   <= 1;
               status_r[LEF]   <= 0;
               //buffered_data_r <= 32'h0000_0000;
@@ -202,7 +205,7 @@ always @(posedge clk, negedge rst_n) begin
               bit_cnt_r       <= 0;
               status_r[WLC]   <= 1;
               status_r[WRP]   <= 0;
-              status_r[WRF]   <= 1;
+              //status_r[WRF]   <= 1;
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 0;
 
@@ -216,7 +219,7 @@ always @(posedge clk, negedge rst_n) begin
               cycle_cnt_r     <= 0;
               status_r[WLC]   <= 0;
               status_r[WRP]   <= 0;
-              status_r[WRF]   <= 0;
+              //status_r[WRF]   <= 0;
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 1;
               buffered_data_r <= 32'h0000_0000;

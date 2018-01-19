@@ -27,6 +27,7 @@ module Fifo2TxRx   #(parameter TX_CONFIG_REG_WIDTH = 16,
     // rx  communication ports
     output  reg  [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx,
     output  reg                             config_we_rx,
+    output  reg                             word_picked_rx,
     input        [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx,
     input        [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx,
     input        [31:0]                     rd_data_rx,
@@ -158,8 +159,10 @@ always @(posedge clk, negedge rst_n) begin
     wr_data_tx   <= 32'b0;
     data_we_tx   <= 0;
     channel_r    <= 0;
-    wr_config_rx <= 16'b0;
-    config_we_rx <= 0;
+
+    wr_config_rx   <= 16'b0;
+    config_we_rx   <= 0;
+
 
     wr_config_tx <= 0;
     config_we_tx <= 0;
@@ -259,26 +262,32 @@ always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     fifo_write_data <= 32'b0;
     fifo_write_inc  <= 0;
+    word_picked_rx  <= 0;
   end else begin
     case (1'b1)
       out_next  [READ_WAIT     ]: begin
         fifo_write_inc <= 0;
+        word_picked_rx <= 0;
       end
       out_next  [READ_CHANNEL  ]: begin
         fifo_write_data <= {CHANNEL_MODIFIER, 32'b0 | channel_r};
         fifo_write_inc <= 1;
+        word_picked_rx <= 0;
       end
       out_next  [READ_RX_DATA  ]: begin
+        word_picked_rx <= 1;
         fifo_write_data <= {DATA_MODIFIER,  32'b0 |  rd_data_rx};
         fifo_write_inc <= 1;
       end
       out_next  [READ_RX_CONFIG]:begin
         fifo_write_data <= {CONFIG_MODIFIER, 32'b0 | rd_config_rx};
         fifo_write_inc <= 1;
+        word_picked_rx <= 0;
       end
       out_next  [READ_RX_STATUS]:begin
         fifo_write_data <= {STATUS_MODIFIER, 32'b0 | rd_status_rx};
         fifo_write_inc <= 1;
+        word_picked_rx <= 0;
       end
       out_next  [READ_TX_STATUS]:begin
         fifo_write_data <= {STATUS_MODIFIER, 32'b0 | rd_status_tx};

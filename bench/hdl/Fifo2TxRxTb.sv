@@ -31,6 +31,7 @@ module Fifo2TxRxTb(
     // rx  communication ports
     logic    [15:0]  wr_config_rx;
     logic            config_we_rx;
+    logic            word_picked_rx;
     logic    [15:0]  rd_status_rx;
     logic    [15:0]  rd_config_rx;
     logic    [31:0]  rd_data_rx;
@@ -38,6 +39,7 @@ module Fifo2TxRxTb(
     logic            data_status_changed_rx;
 
     Fifo2TxRx test_module (
+      .word_picked_rx(word_picked_rx),
       .clk (clk),
       .rst_n (rst_n),
       .fifo_read_empty        (fifo_read_empty),
@@ -158,14 +160,14 @@ module Fifo2TxRxTb(
         #CLK_PERIOD;
         data_status_changed_rx  = 0;
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791),
+        writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791) && word_picked_rx == 1,
            6, "read rx data");
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| 32'd76),
+        writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| 32'd76) && word_picked_rx == 0,
           7, "read rx  status");
         rd_config_rx = message [15:0];
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0]),
+        writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0] && word_picked_rx == 0),
              8, "read rx config");
 
 

@@ -92,6 +92,7 @@ wire            status_changed_tx;
 // rx  communication ports
 wire    [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx;
 wire            config_we_rx;
+wire            word_picked_rx;
 wire    [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx;
 wire    [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx;
 wire    [31:0]  rd_data_rx;
@@ -118,6 +119,7 @@ Fifo2TxRx#(TX_CONFIG_REG_WIDTH,
   .rd_config_tx           (rd_config_tx),
   .status_changed_tx      (status_changed_tx),
   .config_we_rx           (config_we_rx),
+  .word_picked_rx         (word_picked_rx),
   .rd_status_rx           (rd_status_rx),
   .rd_config_rx           (rd_config_rx),
   .rd_data_rx             (rd_data_rx),
@@ -137,6 +139,7 @@ Fifo2TxRx#(TX_CONFIG_REG_WIDTH,
      .status_changed   (status_changed_tx )
     );
     SL_receiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
+        .word_picked                (word_picked_rx),
         .rst_n                      (rst_n),
         .serial_line_zeroes_a       (SL0_in),
         .serial_line_ones_a         (SL0_in),

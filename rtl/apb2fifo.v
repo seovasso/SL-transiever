@@ -19,6 +19,9 @@ output  reg                 fifo_read_inc,
 output  reg  [33:0]         fifo_write_data,
 output  reg                 fifo_write_inc
     );
+
+parameter WRF = 3; // word recieved flag, needed to say user that there is no new word
+
 parameter CONFIG_ADDR    = 16'd1,
           DATA_ADDR      = 16'd2,
           STATUS_ADDR    = 16'd3,
@@ -151,6 +154,7 @@ always @( posedge pclk, negedge preset_n ) begin
   else begin
     status_r[CBF] <= fifo_write_full;
     status_r[CBE] <= fifo_write_empty;
+    if (next_r[READ] && paddr == DATA_ADDR && channel_r) status_r[WRF] <= 0; //если модуль находится в режиме приемника, и идет транзакция чтения данных, то флаг принятого сообщения сбрасывается
     if (read_from_fifo_next) begin //reading from fifo buffer
       case (fifo_read_data [33:32])
         CONFIG_MODIFIER : config_r  <= fifo_read_data[APB_CONFIG_REG_WIDTH-1:0];
