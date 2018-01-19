@@ -207,7 +207,7 @@ logic allTestsPassed;
     end while (readedData!=32'd1);
     readTransaction(CONFIG_ADDR);
     #50;
-    testMassage(8,0);
+    testMassage(8,1);
     #10;
     readTransaction(STATUS_ADDR);
     readTransaction(DATA_ADDR);
