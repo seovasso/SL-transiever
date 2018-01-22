@@ -143,6 +143,9 @@ always @( posedge pclk, negedge preset_n ) begin
   else  read_from_fifo <= read_from_fifo_next;
 end
 
+wire wordRecieveFlagNext;//ужасный костыль, обсеспецчивающий корректную работу флага WRF
+assign wordRecieveFlagNext = (channel_r && !fifo_read_data[WRF])?status_r[WRF]:fifo_read_data[WRF];
+
 always @( posedge pclk, negedge preset_n ) begin
   if( !preset_n ) begin
     rec_data_r      <= 0;
@@ -159,7 +162,7 @@ always @( posedge pclk, negedge preset_n ) begin
       case (fifo_read_data [33:32])
         CONFIG_MODIFIER : config_r  <= fifo_read_data[APB_CONFIG_REG_WIDTH-1:0];
         DATA_MODIFIER   : rec_data_r<= fifo_read_data[31:0];
-        STATUS_MODIFIER : status_r  <= fifo_read_data[ 7:0];
+        STATUS_MODIFIER : status_r  <= {fifo_read_data[ 7:WRF+1], wordRecieveFlagNext, fifo_read_data[WRF-1:0]}; // мне очень стыдно за это, но как по-другому я не придумал
         CHANNEL_MODIFIER: channel_r <= fifo_read_data[APB_CHANNEL_REG_WIDTH-1:0];
       endcase
       fifo_read_inc<=1;
