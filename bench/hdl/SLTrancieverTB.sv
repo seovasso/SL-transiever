@@ -57,10 +57,29 @@ module SlTrancieverTB(
    //SLMasseges tasks
      localparam  SlClkLength = 16*CLK_PERIOD;
 
+     // Test staff
+     task writeTestResult;
+       input logic condition;
+       input int testNumber;
+       input string testName;
+         begin
+         if (!condition) begin
+           currTestPassed = 0;
+           allTestsPassed = 0;
+         end
+         $display ("Test # %d: %s : %s ",testNumber, testName, (currTestPassed? "OK" : "failed"));
+         currTestPassed = 1;
+       end
+     endtask
+   // test variables
+    logic currTestPassed;
+    logic allTestsPassed;
+
+            logic [31:0] mes;
    task testMassage;//конфигуриррует приемник и отправляет SL посылку
             input int mesLength;//длинна сообщения
             input bit parityRight;//если 1, то правильная четность, если 0 то неправильная
-            logic [31:0] mes;
+
      begin
      mes=$urandom_range(2**mesLength-1,0);
      slTransaction(mes,mesLength,parityRight);
@@ -170,8 +189,8 @@ module SlTrancieverTB(
    initial forever #(CLK_PERIOD/2) pclk<=~pclk;
 
 // test Description
-logic currTestPassed;
-logic allTestsPassed;
+int lastCorrMsg;
+
     initial begin
     currTestPassed = 1;
     allTestsPassed = 1;
@@ -194,33 +213,73 @@ logic allTestsPassed;
     preset_n = 1;
     reset_n = 1;
     #40;
-    writeTransaction(DATA_ADDR,32'd112356);
-    #10
-
-    writeTransaction(CONFIG_ADDR,32'd0|10'b0010010000);
-    writeTransaction(DATA_ADDR,32'd112356);
-    readTransaction(CONFIG_ADDR);
+    // writeTransaction(DATA_ADDR,32'd112356);
+    // #10
+    //
+    // writeTransaction(CONFIG_ADDR,32'd0|10'b0010010000);
+    // writeTransaction(DATA_ADDR,32'd112356);
+    // readTransaction(CONFIG_ADDR);
     writeTransaction(CHANNEL_ADDR,32'd1);
-    do begin
-    readTransaction(CHANNEL_ADDR);
-    #70;
-    end while (readedData!=32'd1);
-    readTransaction(CONFIG_ADDR);
-    #50;
-    testMassage(8,1);
-    #10;
+    // do begin
+    // readTransaction(CHANNEL_ADDR);
+    // #70;
+    // end while (readedData!=32'd1);
+    // readTransaction(CONFIG_ADDR);
+    // #50;
+    writeTransaction(CONFIG_ADDR,32'd0|10'b000110000);
+     #30;
+     readTransaction(CONFIG_ADDR);
+    writeTestResult(readedData == (32'd0|10'b000_11000_0),1,"RX_CONFIG writing");
+
+    testMassage(24,1);
+    #20;
     readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0000_1000, 1, "16 bit right msg status");
     readTransaction(DATA_ADDR);
-    writeTransaction(CONFIG_ADDR,32'd0|10'b000100000);
-    testMassage(16,1);
-    #10;
+    writeTestResult(readedData == mes, 1, "16 bit right msg data");
     readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0000_0000, 1, "reset status after reading");
+
+    testMassage(24,1);
+    lastCorrMsg = mes;
+    fork
+      begin
+      #60;
+      readTransaction(STATUS_ADDR);
+      writeTestResult(readedData[7:0] == 8'b0000_1010, 1, "16 bit right msg status while other msg");
+      readTransaction(DATA_ADDR);
+      writeTestResult(readedData == lastCorrMsg, 1, "16 bit right msg data while other msg");
+      readTransaction(STATUS_ADDR);
+          writeTestResult(readedData[7:0] == 8'b0000_0010, 1, "reset status after reading while other msg");
+      end
+      testMassage(24,0);
+    join
+
+    #20;
+    readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0001_1000, 1, "16 bit right msg status");
     readTransaction(DATA_ADDR);
-    readTransaction(CONFIG_ADDR);
-    #100;
+    writeTestResult(readedData == mes, 1, "16 bit right msg data");
+    readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0001_0000, 1, "reset status after reading");
+
+
+    // writeTestResult(readedData == mes,1,"16 bit msg");
+    //
+    // #10;
+    // readTransaction(STATUS_ADDR);
+    // readTransaction(DATA_ADDR);
+    //writeTransaction(CONFIG_ADDR,32'd0|10'b000100000);
+
+    // testMassage(8,1);
+    // #10;
+    // readTransaction(STATUS_ADDR);
+    // readTransaction(DATA_ADDR);
+    // readTransaction(CONFIG_ADDR);
+    // #100;
    // writeTransaction(DATA_ADDR,32'd112356);
    // writeTransaction(CHANNEL_ADDR,32'd2);
-   // #100;
+   #100;
  $stop;
    // #10;
    end
