@@ -206,10 +206,14 @@ always @(posedge clk, negedge rst_n) begin
     end
   end
 
-wire config_changed_tx, config_changed_rx;
-assign config_changed_tx = in_state_r[WRITE_TX_CONFIG] == 1'b1;
-assign config_changed_rx = in_state_r[WRITE_RX_CONFIG] == 1'b1;
 
+reg config_changed_tx, config_changed_rx;
+always @(posedge clk, negedge rst_n)
+  if( !rst_n ) {config_changed_tx,config_changed_rx} <= 0;
+  else begin
+    config_changed_tx <= in_state_r[WRITE_TX_CONFIG] == 1'b1;
+    config_changed_rx <= in_state_r[WRITE_RX_CONFIG] == 1'b1;
+  end
 
 always @* begin: out_fsm_next_calculate
   out_next = 7'b0;
@@ -237,8 +241,10 @@ always @* begin: out_fsm_next_calculate
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_CONFIG  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_WAIT     ] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        if (!channel_changed_r) begin
+          if (!config_changed_rx)                         out_next[READ_WAIT     ] = 1'b1;
+          else                                            out_next[READ_RX_CONFIG] = 1'b1;
+        end else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_STATUS  ]:
       if (!fifo_write_full) begin
@@ -247,8 +253,10 @@ always @* begin: out_fsm_next_calculate
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_CONFIG  ]:
       if (!fifo_write_full) begin
-        if (!channel_changed_r)                       out_next[READ_WAIT     ] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        if (!channel_changed_r) begin
+          if (!config_changed_tx)                         out_next[READ_WAIT     ] = 1'b1;
+          else                                            out_next[READ_TX_CONFIG] = 1'b1;
+        end else                                          out_next[READ_CHANNEL  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_STATUS  ]:
       if (!fifo_write_full) begin
