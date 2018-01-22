@@ -222,7 +222,7 @@ always @(posedge clk, negedge rst_n) begin
               //status_r[WRF]   <= 0;
               status_r[PEF]   <= 0;
               status_r[LEF]   <= 1;
-              buffered_data_r <= 32'h0000_0000;
+              //buffered_data_r <= 32'h0000_0000;
             end
       endcase
     end
