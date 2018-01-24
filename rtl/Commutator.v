@@ -39,7 +39,7 @@ module Commutator   #(parameter TX_CONFIG_REG_WIDTH = 16,
 localparam  ADDR_REG_SIZE = 6;
 reg  [ADDR_REG_SIZE-1:0] addr_r; // регистр адреса устройства
 wire [ADDR_REG_SIZE-2:0] channel_w; // номером канала является адрес устройства деленный на два (на 1 канал - один приемник или передатчик)
-assign channel_w = addr_r [ADDR_REG_SIZE-1:0];
+assign channel_w = addr_r [ADDR_REG_SIZE-1:1];
 
 wire is_rec_w;// первый бит адреса определяет приемник это или передатчик
 assign is_rec_w = addr_r [0];
@@ -62,7 +62,7 @@ wire [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx_arr            [0:CHANNEL_COUNT-1];
 wire [31:0]                     rd_data_rx_arr              [0:CHANNEL_COUNT-1];
 wire                            data_status_changed_rx_arr  [0:CHANNEL_COUNT-1];
 
-// далее следует страшный костыль, призванный компенсировать отсутсвие в ерилоге возможности делать выходы и входы массивами
+// далее следует страшный костыль, призванный компенсировать отсутствие в ерилоге возможности делать выходы и входы массивами
 genvar i;
 generate
   for (i = 0; i < CHANNEL_COUNT; i = i+1)begin
