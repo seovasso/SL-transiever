@@ -119,8 +119,8 @@ parameter READ_WAIT      = 0,
           READ_CHANNEL   = 6; // write to channel reg state
 wire transmitter_is_busy; //status busy bit
 wire reciever_is_busy; // reciever busy bit
-assign transmitter_is_busy = rd_status_tx;
-assign reciever_is_busy = rd_status_rx[0];
+assign transmitter_is_busy = rd_status_tx_arr[channel_w];
+assign reciever_is_busy = rd_status_rx_arr[channel_w] [0];
 
 
 always @( posedge clk, negedge rst_n ) begin

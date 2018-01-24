@@ -61,7 +61,7 @@ module CommunicatorTb(
     logic            data_status_changed_rx_2;
 
     Commutator#(16,16,16,2) test_module (
-      .word_picked_rx({word_picked_rx_1,word_picked_rx_2}),
+
       .clk (clk),
       .rst_n (rst_n),
       .fifo_read_empty        (fifo_read_empty),
@@ -70,6 +70,7 @@ module CommunicatorTb(
       .fifo_read_inc          (fifo_read_inc),
       .fifo_write_data        (fifo_write_data),
       .fifo_write_inc         (fifo_write_inc),
+      .word_picked_rx({word_picked_rx_2,word_picked_rx_1}),
       .wr_data_tx             ({wr_data_tx_2, wr_data_tx_1}),
       .data_we_tx             ({data_we_tx_2, data_we_tx_1}),
       .wr_config_tx           ( {wr_config_tx_2, wr_config_tx_1}),
@@ -161,7 +162,7 @@ module CommunicatorTb(
        inMsg(CONFIG_MODIFIER);
       if (!(fifo_read_inc && config_we_tx_1 && wr_config_tx_1 == message [15:0])) begin
         currTestPassed = 0;
-        $display("%d != %d, %d != %d, %d != %d ", fifo_read_inc, 1, config_we_tx_1, 1, wr_config_tx_1, message [15:0] );
+        $display("%b != %b, %b != %b, %b != %b ", fifo_read_inc, 1, config_we_tx_1, 1, wr_config_tx_1, message [15:0] );
       end
        writeTestResult(currTestPassed , 1, "write tx_1 config");
 
@@ -170,14 +171,14 @@ module CommunicatorTb(
         #CLK_PERIOD;
         if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| message [15:0]))) begin
           currTestPassed = 0;
-          $display("%d != %d, %d != %d",fifo_write_inc, 1, fifo_write_data, (CONFIG_MODIFIER << 32| message [15:0]) );
+          $display("%b != %b, %b != %b",fifo_write_inc, 1, fifo_write_data, (CONFIG_MODIFIER << 32| message [15:0]) );
         end
         writeTestResult(currTestPassed, 2, "read tx_1 config");
 
         inMsg(DATA_MODIFIER);
        if (!(fifo_read_inc && data_we_tx_1 && wr_data_tx_1 == message)) begin
          currTestPassed = 0;
-         $display("%d != %d, %d != %d, %d != %d ",fifo_read_inc, 1, data_we_tx_1, 1, wr_data_tx_1,  message);
+         $display("%b != %b, %b != %b, %b != %b ",fifo_read_inc, 1, data_we_tx_1, 1, wr_data_tx_1,  message);
        end
         writeTestResult(currTestPassed , 1, "write tx_1 config");
        fifo_read_empty = 1;
@@ -202,26 +203,36 @@ module CommunicatorTb(
        fifo_read_empty = 1;
        if (!(fifo_read_inc && !data_we_tx_1 && !config_we_tx_1 && !config_we_rx_1)) begin
          currTestPassed = 0;
-         $display("error %d != %d, %d != %d, %d != %d, %d != %d ", fifo_read_inc, 1, data_we_tx_1, 0, config_we_tx_1,0 ,config_we_rx_1, 0);
+         $display("error %b != %b, %b != %b, %b != %b, %b != %b ", fifo_read_inc, 1, data_we_tx_1, 0, config_we_tx_1,0 ,config_we_rx_1, 0);
        end
         writeTestResult(currTestPassed , 5, "change channel");
 
 
-        rd_data_rx_1 = 32'd456791;
-        rd_status_rx_1 = 16'd76;
+        rd_data_rx_1 = $urandom_range(2**26-1,0) ;
+        rd_status_rx_1 = $urandom_range(2**16-1,0) ;
+        rd_data_rx_2 = $urandom_range(2**26-1,0) ;
+        rd_status_rx_2 = $urandom_range(2**16-1,0) ;
         data_status_changed_rx_1 = 1;
         #CLK_PERIOD;
         data_status_changed_rx_1  = 0;
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791) && word_picked_rx_1 == 1,
-           6, "read rx_1 data");
+        if (!(fifo_write_inc && fifo_write_data == (DATA_MODIFIER << 32| rd_data_rx_1) && word_picked_rx_1 == 1)) begin
+          currTestPassed = 0;
+          $display("error with data reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data, ((34'b0|DATA_MODIFIER << 32)| rd_data_rx_1), word_picked_rx_1, 1);
+        end
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| 32'd76) && word_picked_rx_1 == 0,
-          7, "read rx_1  status");
+        if (!(fifo_write_inc && fifo_write_data == (STATUS_MODIFIER << 32| rd_status_rx_1) && !word_picked_rx_1)) begin
+          currTestPassed = 0;
+          $display("error with status reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data, (STATUS_MODIFIER << 32| rd_status_rx_1), word_picked_rx_1, 0);
+        end
         rd_config_rx_1 = message [15:0];
         #CLK_PERIOD;
-        writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0] && word_picked_rx_1 == 0),
-             8, "read rx_1 config");
+        if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| rd_config_rx_1) && !word_picked_rx_1)) begin
+          currTestPassed = 0;
+          $display(" error with config reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data,(CONFIG_MODIFIER << 32| rd_config_rx_1), word_picked_rx_1, 0);
+        end
+        writeTestResult(currTestPassed,
+             678, "read rx_1 data, status & sconfig");
 
 
 
@@ -229,17 +240,21 @@ module CommunicatorTb(
 
 
        #CLK_PERIOD;
-       message = $urandom_range(2**16-1,0);
-       fifo_read_data  = message  | 34'd0<<32;
-       fifo_read_empty = 0;
-       #CLK_PERIOD;
-       fifo_read_empty = 1;
-       writeTestResult(fifo_read_inc && config_we_rx_1 && wr_config_rx_1 [15:0] == message [15:0],
-          9, "write rx_1 config");
+      rd_status_rx_1 = 0;
+      inMsg(CONFIG_MODIFIER);
+      if (!(fifo_read_inc && config_we_rx_1 && wr_config_rx_1 [15:0] == message [15:0])) begin
+        currTestPassed = 0;
+        $display(" error with config writing %b != %b, %b != %b, %b != %b",fifo_read_inc, 1'b1, config_we_rx_1, 1'b1, wr_config_rx_1 [15:0], message [15:0]);
+      end
+      writeTestResult(currTestPassed, 9, "write rx_1 config");
       rd_config_rx_1 = message [15:0];
       #CLK_PERIOD;
-      writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0]),
-         10, "read rx_1 config");
+      #CLK_PERIOD;
+      if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| rd_config_rx_1) && !word_picked_rx_1)) begin
+        currTestPassed = 0;
+        $display(" error with config reading %b != %b, %b != %b", fifo_write_inc, 1'b1, fifo_write_data,(CONFIG_MODIFIER << 32| rd_config_rx_1));
+      end
+      writeTestResult(currTestPassed, 10, "read rx_1 config");
 
        #CLK_PERIOD;
        message = $urandom_range(2**16-1,0);
@@ -282,12 +297,12 @@ module CommunicatorTb(
 
 
           #CLK_PERIOD;
-          fifo_read_data  = 34'd0 | 34'd0<<32;
+          fifo_read_data  = 34'd0 | CHANNEL_MODIFIER<<32;
           fifo_read_empty = 0;
           #CLK_PERIOD;
           fifo_read_empty = 1;
           #CLK_PERIOD;
-          writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd0),
+          writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd0),
              16, "read channel");
           rd_status_tx_1=message[0];
          #CLK_PERIOD;
@@ -309,43 +324,46 @@ module CommunicatorTb(
 
             writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| message[0]),
                19, "read tx_1 status");
-              $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
+              $display ("All Tests with first channel:  %s ",(allTestsPassed?"passed":"failed"));
 
 
 
               // second part
-
               #CLK_PERIOD;
-              message = $urandom_range(2**16-1,2);
-              fifo_read_data  = message | 34'd3<<32;
+              fifo_read_data  = 34'd2 | CHANNEL_MODIFIER<<32;
               fifo_read_empty = 0;
               #CLK_PERIOD;
               fifo_read_empty = 1;
-
-              writeTestResult(fifo_read_inc && !data_we_tx_1 && !config_we_tx_1 && !config_we_rx_1,
-                 5, "change channel");
-
-
-
-
               #CLK_PERIOD;
-              message = $urandom_range(2**16-1,0);
-              fifo_read_data  = message | 34'd0<<32;
-              fifo_read_empty = 0;
+              writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd2),
+                 16, "read channel");
               #CLK_PERIOD;
-              fifo_read_empty = 1;
-              writeTestResult(fifo_read_inc && config_we_tx_2 && wr_config_tx_2 == message [15:0] ,
-                 1, "write tx_2 config");
+              #CLK_PERIOD;
+              #CLK_PERIOD;
+
+
+              inMsg(CONFIG_MODIFIER);
+             if (!(fifo_read_inc && config_we_tx_2 && wr_config_tx_2 == message [15:0])) begin
+               currTestPassed = 0;
+               $display("%b != %b, %b != %b, %b != %b ", fifo_read_inc, 1, config_we_tx_2, 1, wr_config_tx_2, message [15:0] );
+             end
+              writeTestResult(currTestPassed , 1, "write tx_2 config");
+
                rd_config_tx_2 = message;
                #CLK_PERIOD;
-               writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32| message [15:0]),
-                  2, "read tx_2 config");
+               #CLK_PERIOD;
+               if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| message [15:0]))) begin
+                 currTestPassed = 0;
+                 $display("%b != %b, %b != %b",fifo_write_inc, 1, fifo_write_data, (CONFIG_MODIFIER << 32| message [15:0]) );
+               end
+               writeTestResult(currTestPassed, 2, "read tx_2 config");
 
-              #CLK_PERIOD;
-              message = $urandom_range(2**16-1,0);
-              fifo_read_data  = message | 34'd1<<32;
-              fifo_read_empty = 0;
-              #CLK_PERIOD;
+               inMsg(DATA_MODIFIER);
+              if (!(fifo_read_inc && data_we_tx_2 && wr_data_tx_2 == message)) begin
+                currTestPassed = 0;
+                $display("%b != %b, %b != %b, %b != %b ",fifo_read_inc, 1, data_we_tx_2, 1, wr_data_tx_2,  message);
+              end
+               writeTestResult(currTestPassed , 1, "write tx_2 config");
               fifo_read_empty = 1;
               writeTestResult(fifo_read_inc && data_we_tx_2 && wr_data_tx_2 == message ,
                  3, "write tx_2 data");
@@ -362,28 +380,42 @@ module CommunicatorTb(
 
               #CLK_PERIOD;
               message = 3;
-              fifo_read_data  = message | 34'd3<<32;
+              fifo_read_data  = message | CHANNEL_MODIFIER<<32;
               fifo_read_empty = 0;
               #CLK_PERIOD;
               fifo_read_empty = 1;
+              if (!(fifo_read_inc && !data_we_tx_2 && !config_we_tx_2 && !config_we_rx_2)) begin
+                currTestPassed = 0;
+                $display("error %b != %b, %b != %b, %b != %b, %b != %b ", fifo_read_inc, 1, data_we_tx_2, 0, config_we_tx_2,0 ,config_we_rx_2, 0);
+              end
+               writeTestResult(currTestPassed , 5, "change channel");
 
-              writeTestResult(fifo_read_inc && !data_we_tx_2 && !config_we_tx_2 && !config_we_rx_2,
-                 5, "change channel");
-               rd_data_rx_2 = 32'd456791;
-               rd_status_rx_2 = 16'd76;
+
+               rd_data_rx_2 = $urandom_range(2**26-1,0) ;
+               rd_status_rx_2 = $urandom_range(2**16-1,0) ;
+               rd_data_rx_2 = $urandom_range(2**26-1,0) ;
+               rd_status_rx_2 = $urandom_range(2**16-1,0) ;
                data_status_changed_rx_2 = 1;
                #CLK_PERIOD;
                data_status_changed_rx_2  = 0;
                #CLK_PERIOD;
-               writeTestResult(fifo_write_inc && fifo_write_data == (34'd1 << 32| 32'd456791) && word_picked_rx_2 == 1,
-                  6, "read rx_2 data");
+               if (!(fifo_write_inc && fifo_write_data == (DATA_MODIFIER << 32| rd_data_rx_2) && word_picked_rx_2 == 1)) begin
+                 currTestPassed = 0;
+                 $display("error with data reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data, ((34'b0|DATA_MODIFIER << 32)| rd_data_rx_2), word_picked_rx_2, 1);
+               end
                #CLK_PERIOD;
-               writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| 32'd76) && word_picked_rx_2 == 0,
-                 7, "read rx_2  status");
+               if (!(fifo_write_inc && fifo_write_data == (STATUS_MODIFIER << 32| rd_status_rx_2) && !word_picked_rx_2)) begin
+                 currTestPassed = 0;
+                 $display("error with status reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data, (STATUS_MODIFIER << 32| rd_status_rx_2), word_picked_rx_2, 0);
+               end
                rd_config_rx_2 = message [15:0];
                #CLK_PERIOD;
-               writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0] && word_picked_rx_2 == 0),
-                    8, "read rx_2 config");
+               if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| rd_config_rx_2) && !word_picked_rx_2)) begin
+                 currTestPassed = 0;
+                 $display(" error with config reading %b != %b, %b != %b, %b != %b", fifo_write_inc, 1, fifo_write_data,(CONFIG_MODIFIER << 32| rd_config_rx_2), word_picked_rx_2, 0);
+               end
+               writeTestResult(currTestPassed,
+                    678, "read rx_2 data, status & sconfig");
 
 
 
@@ -391,17 +423,21 @@ module CommunicatorTb(
 
 
               #CLK_PERIOD;
-              message = $urandom_range(2**16-1,0) ;
-              fifo_read_data  = message  | 34'd0<<32;
-              fifo_read_empty = 0;
-              #CLK_PERIOD;
-              fifo_read_empty = 1;
-              writeTestResult(fifo_read_inc && config_we_rx_2 && wr_config_rx_2 [15:0] == message [15:0],
-                 9, "write rx_2 config");
+             rd_status_rx_2 = 0;
+             inMsg(CONFIG_MODIFIER);
+             if (!(fifo_read_inc && config_we_rx_2 && wr_config_rx_2 [15:0] == message [15:0])) begin
+               currTestPassed = 0;
+               $display(" error with config writing %b != %b, %b != %b, %b != %b",fifo_read_inc, 1'b1, config_we_rx_2, 1'b1, wr_config_rx_2 [15:0], message [15:0]);
+             end
+             writeTestResult(currTestPassed, 9, "write rx_2 config");
              rd_config_rx_2 = message [15:0];
              #CLK_PERIOD;
-             writeTestResult(fifo_write_inc && fifo_write_data == (34'd0 << 32 | message [15:0]),
-                10, "read rx_2 config");
+             #CLK_PERIOD;
+             if (!(fifo_write_inc && fifo_write_data == (CONFIG_MODIFIER << 32| rd_config_rx_2) && !word_picked_rx_2)) begin
+               currTestPassed = 0;
+               $display(" error with config reading %b != %b, %b != %b", fifo_write_inc, 1'b1, fifo_write_data,(CONFIG_MODIFIER << 32| rd_config_rx_2));
+             end
+             writeTestResult(currTestPassed, 10, "read rx_2 config");
 
               #CLK_PERIOD;
               message = $urandom_range(2**16-1,0);
@@ -444,12 +480,12 @@ module CommunicatorTb(
 
 
                  #CLK_PERIOD;
-                 fifo_read_data  = 34'd0 | 34'd2<<32;
+                 fifo_read_data  = 34'd2 | CHANNEL_MODIFIER<<32;
                  fifo_read_empty = 0;
                  #CLK_PERIOD;
                  fifo_read_empty = 1;
                  #CLK_PERIOD;
-                 writeTestResult(fifo_write_inc && fifo_write_data == (34'd3 << 32| 32'd2),
+                 writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd2),
                     16, "read channel");
                  rd_status_tx_2=message[0];
                 #CLK_PERIOD;
@@ -471,8 +507,8 @@ module CommunicatorTb(
 
                    writeTestResult(fifo_write_inc && fifo_write_data == (34'd2 << 32| message[0]),
                       19, "read tx_2 status");
-                     $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
-                     $stop();
+                     $display ("All Tests with second channel:  %s ",(allTestsPassed?"passed":"failed"));
+               $stop();
      end
 
 endmodule
