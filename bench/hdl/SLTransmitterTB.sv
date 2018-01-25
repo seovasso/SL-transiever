@@ -24,7 +24,7 @@ module SlTransmitterTb();
      logic        send_imm;
      logic        wr_config_enable;
      logic        status_changed;
-     SL_transmitter trans(
+     SlTransmitter trans(
         .rst_n            (rst_n           ),
         .clk              (clk             ),
         .SL0              (SL0             ),

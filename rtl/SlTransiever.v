@@ -125,7 +125,7 @@ Router#(TX_CONFIG_REG_WIDTH,
   .rd_data_rx             (rd_data_rx),
   .data_status_changed_rx (data_status_changed_rx)
   );
-  SL_transmitter trans(
+  SlTransmitter trans(
      .rst_n            (rst_n),
      .clk              (clk),
      .SL0              (SL0_out),

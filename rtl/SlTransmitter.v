@@ -1,4 +1,4 @@
-module SL_transmitter (
+module SlTransmitter (
   //Common signals
   input wire rst_n,
   input wire clk, //16MHz
