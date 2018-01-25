@@ -14,7 +14,7 @@
 |SlReciever             |Приемник                             |[в работе][RecSpec]  |[в работе][RecTest]  |[src][RecRtl]  |[TB][RecTb]            
 |Router                 |Управляет приемниками и передатчиками|[в работе][RoutSpec] |не создан            |[src][RoutRtl] |[TB][RoutTb]
 |AsyncFifo              |Асинхронный буфер                    |не создана           |не создан            |[src][FifoRtl] |[TB][FifoTb]
-|ApbCommunicator        |Связывает апб с буферами             |[в работе][ApbSpec]  |не создан            |[src][ApbRtl]  |[src][ApbTb]
+|ApbCommunicator        |Связывает апб с буферами             |[в работе][ApbSpec]  |не создан            |[src][ApbRtl]  |[TB][ApbTb]
 
 [TopSpec]: sl_tranciever_spec.adoc
 [TopTest]: apb_sl_brdige_test_plan.adoc
@@ -30,10 +30,10 @@
 [RoutRtl]:../../rtl/Router.v
 [RoutTb]:../../bench/hdl/RouterTB.sv
 [RecRtl]:../../rtl/SlReciever.v
-[RecTb]:../../bench/hdl/SlRecieverTB.sv
+[RecTb]:../../bench/hdl/SlReceiverTB.sv
 [TransRtl]:../../rtl/SlTransmitter.v
-[TransTb]:../../bench/hdl/SltransmitterTB.sv
+[TransTb]:../../bench/hdl/SlTransmitterTB.sv
 [ApbRtl]:../../rtl/ApbCommunicator.v
-[ApbTb]:../../bench/hdl/ApbCommunicatorTB.sv
+[ApbTb]:../../bench/hdl/ApbCommunicatorTb.sv
 [FifoRtl]:../../rtl/AsyncFifo.v
 [FifoTb]:../../bench/hdl/AsyncFifoTb.sv
