@@ -1,7 +1,7 @@
 
 
 
-module Commutator   #(parameter TX_CONFIG_REG_WIDTH = 16,
+module Router  #(parameter TX_CONFIG_REG_WIDTH = 16,
                     parameter RX_CONFIG_REG_WIDTH = 16,
                     parameter RX_STATUS_REG_WIDTH = 16,
                     parameter CHANNEL_COUNT       = 2
@@ -36,13 +36,13 @@ module Commutator   #(parameter TX_CONFIG_REG_WIDTH = 16,
     input        [CHANNEL_COUNT-1:0]                      data_status_changed_rx
     );
 
-localparam  ADDR_REG_SIZE = 6;
-reg  [ADDR_REG_SIZE-1:0] addr_r; // регистр адреса устройства
-wire [ADDR_REG_SIZE-2:0] channel_w; // номером канала является адрес устройства деленный на два (на 1 канал - один приемник или передатчик)
-assign channel_w = addr_r [ADDR_REG_SIZE-1:1];
+localparam  INST_ADDR_REG_SIZE = 6;
+reg  [INST_ADDR_REG_SIZE-1:0] inst_addr_r; // регистр адреса устройства
+wire [INST_ADDR_REG_SIZE-2:0] channel_w; // номером канала является адрес устройства деленный на два (на 1 канал - один приемник или передатчик)
+assign channel_w = inst_addr_r [INST_ADDR_REG_SIZE-1:1];
 
 wire is_rec_w;// первый бит адреса определяет приемник это или передатчик
-assign is_rec_w = addr_r [0];
+assign is_rec_w = inst_addr_r [0];
 // tx  communication ports
 reg  [31:0]                     wr_data_tx_arr              [0:CHANNEL_COUNT-1];
 reg                             data_we_tx_arr              [0:CHANNEL_COUNT-1];
@@ -139,7 +139,7 @@ end
 parameter CONFIG_MODIFIER    = 2'd0,
           DATA_MODIFIER      = 2'd1,
           STATUS_MODIFIER    = 2'd2,
-          CHANNEL_MODIFIER   = 2'd3;
+          INST_ADDR_MODIFIER   = 2'd3;
 parameter HMB = 33, // high modifier bit
           LMB = 32; // low modifier bit
 localparam  MODIFIER_LENGTH = HMB-LMB+1;
@@ -153,7 +153,7 @@ always @* begin: in_fsm_next_calculate
   case (1'b1)
     in_state_r[WRITE_WAIT]:
       if (!fifo_read_empty)
-        if (in_modifier == CHANNEL_MODIFIER)          in_next[WRITE_CHANNEL  ] = 1'b1;
+        if (in_modifier == INST_ADDR_MODIFIER)          in_next[WRITE_CHANNEL  ] = 1'b1;
         else
           if (is_rec_w) begin: rx_processing
             if (!reciever_is_busy) begin
@@ -186,7 +186,7 @@ generate
 
         wr_data_tx_arr [l]    <= 0;
         data_we_tx_arr [l]   <= 0;
-        addr_r       <= 0;
+        inst_addr_r       <= 0;
 
         wr_config_rx_arr [l]  <= 0;
         config_we_rx_arr [l]  <= 0;
@@ -203,7 +203,7 @@ endgenerate
 
   always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
-    addr_r          <= 0;
+    inst_addr_r          <= 0;
     fifo_read_inc   <= 0;
     addr_changed_r  <= 0;
   end else  begin
@@ -216,7 +216,7 @@ endgenerate
         addr_changed_r <= 0;
       end
       in_next [WRITE_CHANNEL]: begin
-        addr_r <= (fifo_read_data[ADDR_REG_SIZE-1:1] <= CHANNEL_COUNT)? fifo_read_data[ADDR_REG_SIZE-1:0]:0 ;
+        inst_addr_r <= (fifo_read_data[INST_ADDR_REG_SIZE-1:1] <= CHANNEL_COUNT)? fifo_read_data[INST_ADDR_REG_SIZE-1:0]:0 ;
         addr_changed_r <= 1;
         fifo_read_inc     <= 1;
       end
@@ -324,7 +324,7 @@ always @(posedge clk, negedge rst_n) begin
         word_picked_rx_arr [channel_w] <= 0;
       end
       out_next  [READ_CHANNEL  ]: begin
-        fifo_write_data <= {CHANNEL_MODIFIER, 32'b0 | addr_r};
+        fifo_write_data <= {INST_ADDR_MODIFIER, 32'b0 | inst_addr_r};
         fifo_write_inc <= 1;
         word_picked_rx_arr [channel_w] <= 0;
       end

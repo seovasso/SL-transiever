@@ -99,9 +99,9 @@ wire    [31:0]  rd_data_rx;
 wire            config_changed_rx;
 wire            data_status_changed_rx;
 
-Fifo2TxRx#(TX_CONFIG_REG_WIDTH,
+Router#(TX_CONFIG_REG_WIDTH,
           RX_CONFIG_REG_WIDTH,
-          RX_STATUS_REG_WIDTH) test_module (
+          RX_STATUS_REG_WIDTH,1) test_module (
   .clk                    (clk),
   .rst_n                  (rst_n),
   .fifo_read_empty        (in_fifo_read_empty),

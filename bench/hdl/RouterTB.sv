@@ -1,4 +1,4 @@
-module CommunicatorTb(
+module RouterTb(
 
     );
 
@@ -7,7 +7,7 @@ module CommunicatorTb(
     parameter CONFIG_MODIFIER    = 2'd0,
               DATA_MODIFIER      = 2'd1,
               STATUS_MODIFIER    = 2'd2,
-              CHANNEL_MODIFIER   = 2'd3;
+              INST_ADDR_MODIFIER   = 2'd3;
 
 
     logic clk; // system clock
@@ -60,7 +60,7 @@ module CommunicatorTb(
     logic            config_changed_rx_2;
     logic            data_status_changed_rx_2;
 
-    Commutator#(16,16,16,2) test_module (
+    Router#(16,16,16,2) test_module (
 
       .clk (clk),
       .rst_n (rst_n),
@@ -197,7 +197,7 @@ module CommunicatorTb(
 
        #CLK_PERIOD;
        message = 1;
-       fifo_read_data  = message | CHANNEL_MODIFIER<<32;
+       fifo_read_data  = message | INST_ADDR_MODIFIER<<32;
        fifo_read_empty = 0;
        #CLK_PERIOD;
        fifo_read_empty = 1;
@@ -297,12 +297,12 @@ module CommunicatorTb(
 
 
           #CLK_PERIOD;
-          fifo_read_data  = 34'd0 | CHANNEL_MODIFIER<<32;
+          fifo_read_data  = 34'd0 | INST_ADDR_MODIFIER<<32;
           fifo_read_empty = 0;
           #CLK_PERIOD;
           fifo_read_empty = 1;
           #CLK_PERIOD;
-          writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd0),
+          writeTestResult(fifo_write_inc && fifo_write_data == (INST_ADDR_MODIFIER << 32| 32'd0),
              16, "read channel");
           rd_status_tx_1=message[0];
          #CLK_PERIOD;
@@ -330,12 +330,12 @@ module CommunicatorTb(
 
               // second part
               #CLK_PERIOD;
-              fifo_read_data  = 34'd2 | CHANNEL_MODIFIER<<32;
+              fifo_read_data  = 34'd2 | INST_ADDR_MODIFIER<<32;
               fifo_read_empty = 0;
               #CLK_PERIOD;
               fifo_read_empty = 1;
               #CLK_PERIOD;
-              writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd2),
+              writeTestResult(fifo_write_inc && fifo_write_data == (INST_ADDR_MODIFIER << 32| 32'd2),
                  16, "read channel");
               #CLK_PERIOD;
               #CLK_PERIOD;
@@ -380,7 +380,7 @@ module CommunicatorTb(
 
               #CLK_PERIOD;
               message = 3;
-              fifo_read_data  = message | CHANNEL_MODIFIER<<32;
+              fifo_read_data  = message | INST_ADDR_MODIFIER<<32;
               fifo_read_empty = 0;
               #CLK_PERIOD;
               fifo_read_empty = 1;
@@ -480,12 +480,12 @@ module CommunicatorTb(
 
 
                  #CLK_PERIOD;
-                 fifo_read_data  = 34'd2 | CHANNEL_MODIFIER<<32;
+                 fifo_read_data  = 34'd2 | INST_ADDR_MODIFIER<<32;
                  fifo_read_empty = 0;
                  #CLK_PERIOD;
                  fifo_read_empty = 1;
                  #CLK_PERIOD;
-                 writeTestResult(fifo_write_inc && fifo_write_data == (CHANNEL_MODIFIER << 32| 32'd2),
+                 writeTestResult(fifo_write_inc && fifo_write_data == (INST_ADDR_MODIFIER << 32| 32'd2),
                     16, "read channel");
                  rd_status_tx_2=message[0];
                 #CLK_PERIOD;
