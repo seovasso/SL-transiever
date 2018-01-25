@@ -1,4 +1,4 @@
-module SlTranciever ( input SL0_in,
+module SlTransiever ( input SL0_in,
                       input SL1_in,
                       output SL0_out,
                       output SL1_out,

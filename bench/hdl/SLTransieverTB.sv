@@ -1,5 +1,5 @@
 
-module SlTrancieverTB(
+module SlTransieverTB(
 
     );
     parameter CLK_PERIOD = 2;
@@ -35,7 +35,7 @@ module SlTrancieverTB(
 //instances
 
 
-         SlTranciever test_module (
+         SlTransiever test_module (
           .pclk                 (pclk),
           .preset_n             (preset_n),
           .psel                 (psel),
