@@ -262,8 +262,25 @@ int lastCorrMsg;
     writeTestResult(readedData == mes, 1, "16 bit right msg data");
     readTransaction(STATUS_ADDR);
     writeTestResult(readedData[7:0] == 8'b0001_0000, 1, "reset status after reading");
-
-
+    fork
+      begin
+        testMassage(24,0);
+      end
+      begin
+        #70;
+        writeTransaction(CHANNEL_ADDR,32'd0);
+        writeTransaction(DATA_ADDR,32'd112356);
+        writeTransaction(CHANNEL_ADDR,32'd0);
+      end
+    join
+    writeTransaction(CHANNEL_ADDR,32'd1);
+    #40;
+    readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0001_1000, 1, "16 bit right msg status after changing channel");
+    readTransaction(DATA_ADDR);
+    writeTestResult(readedData == mes, 1, "16 bit right msg data  after changing channel");
+    readTransaction(STATUS_ADDR);
+    writeTestResult(readedData[7:0] == 8'b0001_0000, 1, "reset status after reading  after changing channel");
     // writeTestResult(readedData == mes,1,"16 bit msg");
     //
     // #10;
