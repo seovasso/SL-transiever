@@ -30,7 +30,7 @@
 [RoutRtl]:../../rtl/Router.v
 [RoutTb]:../../bench/hdl/RouterTB.sv
 [RecRtl]:../../rtl/SlReceiver.v
-[RecTb]:../../bench/hdl/SLReceiverTB.sv
+[RecTb]:../../bench/hdl/SLReceiverTb.sv
 [TransRtl]:../../rtl/SlTransmitter.v
 [TransTb]:../../bench/hdl/SlTransmitterTB.sv
 [ApbRtl]:../../rtl/ApbCommunicator.v
