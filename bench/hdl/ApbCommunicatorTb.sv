@@ -1,5 +1,5 @@
 
-module apb2fifoTb(
+module ApbCommunicatorTb(
 
     );
     parameter CLK_PERIOD = 10;
@@ -38,7 +38,7 @@ module apb2fifoTb(
 //instances
 
 
-         Apb2Fifo mod (
+         ApbCommunicator mod (
           .pclk                 (pclk),
           .preset_n             (preset_n),
           .psel                 (psel),

@@ -1,4 +1,4 @@
-module Apb2Fifo(
+module ApbCommunicator(
 //Apb ports
 input                       pclk, //синхронизация шины
 input                       preset_n, //ресет apb

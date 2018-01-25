@@ -23,7 +23,7 @@ wire  [33:0]         fifo_read_data;
 wire                 fifo_read_inc;
 wire  [33:0]         fifo_write_data;
 wire                 fifo_write_inc;
-Apb2Fifo mod (
+ApbCommunicator mod (
                .pclk                 (pclk),
                .preset_n             (preset_n),
                .psel                 (psel),
