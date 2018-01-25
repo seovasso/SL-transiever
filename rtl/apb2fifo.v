@@ -31,12 +31,12 @@ parameter CONFIG_ADDR    = 16'd1,
 parameter CONFIG_MODIFIER    = 2'd0,
           DATA_MODIFIER      = 2'd1,
           STATUS_MODIFIER    = 2'd2,
-          CHANNEL_MODIFIER   = 2'd3;
+          INST_ADDR_MODIFIER   = 2'd3;
 
 
 parameter APB_CONFIG_REG_WIDTH = 16;
 parameter APB_STATUS_REG_WIDTH = 16;
-parameter APB_CHANNEL_REG_WIDTH = 2;
+parameter INST_ADDR_REG_WITH = 6;
 
 parameter CBF = 8,
           CBE = 9;
@@ -84,13 +84,16 @@ reg [31:0] reg_out;
 reg [ APB_CONFIG_REG_WIDTH-1:0]  config_r;
 reg [ APB_STATUS_REG_WIDTH-1:0]  status_r;
 reg                  [31:0]  rec_data_r;
-reg [APB_CHANNEL_REG_WIDTH-1:0]  channel_r;
+reg [INST_ADDR_REG_WITH-1:0]  inst_addr_r; //регистр сдреса выбранного устройства(приемника или передатчика)
+
+wire is_rec_w;// первый бит адреса определяет приемник это или передатчик
+assign is_rec_w = inst_addr_r [0];
 
 always @* case (paddr)
   CONFIG_ADDR :{modifier,reg_out} = {CONFIG_MODIFIER , 32'd0|config_r  };
   DATA_ADDR   :{modifier,reg_out} = {DATA_MODIFIER   ,       rec_data_r};
   STATUS_ADDR :{modifier,reg_out} = {STATUS_MODIFIER , 32'd0|status_r  };
-  CHANNEL_ADDR:{modifier,reg_out} = {CHANNEL_MODIFIER, 32'd0|channel_r };
+  CHANNEL_ADDR:{modifier,reg_out} = {INST_ADDR_MODIFIER, 32'd0|inst_addr_r };
   default     :{modifier,reg_out} = {STATUS_MODIFIER , 32'd0};
 endcase
 
@@ -144,26 +147,26 @@ always @( posedge pclk, negedge preset_n ) begin
 end
 
 wire wordRecieveFlagNext;//ужасный костыль, обсеспецчивающий корректную работу флага WRF
-assign wordRecieveFlagNext = (channel_r && !fifo_read_data[WRF])?status_r[WRF]:fifo_read_data[WRF];
+assign wordRecieveFlagNext = (is_rec_w && !fifo_read_data[WRF])?status_r[WRF]:fifo_read_data[WRF];
 
 always @( posedge pclk, negedge preset_n ) begin
   if( !preset_n ) begin
     rec_data_r      <= 0;
     config_r        <= 0;
     status_r        <= 0;
-    channel_r       <= 0;
+    inst_addr_r       <= 0;
     fifo_read_inc   <= 0;
   end
   else begin
     status_r[CBF] <= fifo_write_full;
     status_r[CBE] <= fifo_write_empty;
-    if (next_r[READ] && paddr == DATA_ADDR && channel_r) status_r[WRF] <= 0; //если модуль находится в режиме приемника, и идет транзакция чтения данных, то флаг принятого сообщения сбрасывается
+    if (next_r[READ] && paddr == DATA_ADDR && is_rec_w) status_r[WRF] <= 0; //если модуль находится в режиме приемника, и идет транзакция чтения данных, то флаг принятого сообщения сбрасывается
     if (read_from_fifo_next) begin //reading from fifo buffer
       case (fifo_read_data [33:32])
         CONFIG_MODIFIER : config_r  <= fifo_read_data[APB_CONFIG_REG_WIDTH-1:0];
         DATA_MODIFIER   : rec_data_r<= fifo_read_data[31:0];
         STATUS_MODIFIER : status_r  <= {fifo_read_data[ 7:WRF+1], wordRecieveFlagNext, fifo_read_data[WRF-1:0]}; // мне очень стыдно за это, но как по-другому я не придумал
-        CHANNEL_MODIFIER: channel_r <= fifo_read_data[APB_CHANNEL_REG_WIDTH-1:0];
+        INST_ADDR_MODIFIER: inst_addr_r <= fifo_read_data[INST_ADDR_REG_WITH-1:0];
       endcase
       fifo_read_inc<=1;
     end else begin
