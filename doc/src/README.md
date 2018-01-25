@@ -29,7 +29,7 @@
 [MainTb]:../../bench/hdl/SLTransieverTB.sv
 [RoutRtl]:../../rtl/Router.v
 [RoutTb]:../../bench/hdl/RouterTB.sv
-[RecRtl]:../../rtl/SlReciever.v
+[RecRtl]:../../rtl/SlReceiver.v
 [RecTb]:../../bench/hdl/SlReceiverTB.sv
 [TransRtl]:../../rtl/SlTransmitter.v
 [TransTb]:../../bench/hdl/SlTransmitterTB.sv

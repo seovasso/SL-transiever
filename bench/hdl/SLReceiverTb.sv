@@ -1,6 +1,6 @@
 `timescale 100ps / 1ps
 
-module SlRecieverTb();
+module SlReceiverTb();
     int    SlClkLength = 32;
     parameter clkPeriod = 2;
      logic        rst_n;
