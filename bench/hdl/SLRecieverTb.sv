@@ -15,7 +15,7 @@ module SlRecieverTb();
      logic data_status_changed;
      logic word_picked;
 
- SL_receiver res (
+ SlReceiver res (
      .word_picked                (word_picked),
      .rst_n                      (rst_n),
      .serial_line_zeroes_a       (inSl0),

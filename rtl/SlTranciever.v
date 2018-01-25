@@ -138,7 +138,7 @@ Router#(TX_CONFIG_REG_WIDTH,
      .send_in_process  (rd_status_tx ),
      .status_changed   (status_changed_tx )
     );
-    SL_receiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
+    SlReceiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
         .word_picked                (word_picked_rx),
         .rst_n                      (rst_n),
         .serial_line_zeroes_a       (SL0_in),

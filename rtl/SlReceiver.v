@@ -1,4 +1,4 @@
-module SL_receiver #(parameter STATUS_WIDTH = 16,
+module SlReceiver #(parameter STATUS_WIDTH = 16,
                     parameter  CONFIG_WIDTH = 16)
                     (
   //Common signals
@@ -8,7 +8,6 @@ module SL_receiver #(parameter STATUS_WIDTH = 16,
   // SL related signals
   input wire                    serial_line_zeroes_a,
   input wire                    serial_line_ones_a,
-
   // control signals
   input wire [CONFIG_WIDTH-1:0] wr_config_w,
   input wire                    wr_enable, //signal enable write to config_r
