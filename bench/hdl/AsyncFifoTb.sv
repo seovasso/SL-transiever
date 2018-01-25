@@ -1,6 +1,6 @@
 `timescale 100ps / 1ps
 
-module AsincFifoTb();
+module AsyncFifoTb();
   parameter CLK_PERIOD   = 10;
   parameter CLK_TIME_DELAY= 0;
   parameter FIFO_DATA_SIZE = 34;
