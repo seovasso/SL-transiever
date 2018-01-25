@@ -25,14 +25,14 @@
 [RoutSpec]: router_spec.adoc
 [ApbSpec]: apb_2_fifo_spec.adoc
 
-[MainRtl]:../../rtl/SLTransiever.v
+[MainRtl]:../../rtl/SlTransiever.v
 [MainTb]:../../bench/hdl/SLTransieverTB.sv
 [RoutRtl]:../../rtl/Router.v
 [RoutTb]:../../bench/hdl/RouterTB.sv
 [RecRtl]:../../rtl/SlReceiver.v
 [RecTb]:../../bench/hdl/SLReceiverTb.sv
 [TransRtl]:../../rtl/SlTransmitter.v
-[TransTb]:../../bench/hdl/SlTransmitterTB.sv
+[TransTb]:../../bench/hdl/SLTransmitterTB.sv
 [ApbRtl]:../../rtl/ApbCommunicator.v
 [ApbTb]:../../bench/hdl/ApbCommunicatorTb.sv
 [FifoRtl]:../../rtl/AsyncFifo.v
