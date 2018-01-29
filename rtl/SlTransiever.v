@@ -1,7 +1,8 @@
-module SlTransiever ( input SL0_in,
-                      input SL1_in,
-                      output SL0_out,
-                      output SL1_out,
+module SlTransiever#(parameter CHANNEL_COUNT = 1)
+                    ( input  [CHANNEL_COUNT-1:0] SL0_in,
+                      input  [CHANNEL_COUNT-1:0] SL1_in,
+                      output [CHANNEL_COUNT-1:0] SL0_out,
+                      output [CHANNEL_COUNT-1:0] SL1_out,
 
                       input                       pclk, //синхронизация шины
                       input                       preset_n, //ресет apb
@@ -78,30 +79,29 @@ AsyncFifo#(4,34) to_apb_fifo (  .wr_data  (out_fifo_write_data),
                                 .wr_rst_n (rst_n),
                                 .rd_rst_n (preset_n));
 
-
-
-wire    [31:0]  wr_data_tx;
-wire            data_we_tx;
-wire    [TX_CONFIG_REG_WIDTH-1:0]  wr_config_tx;
-wire            config_we_tx;
-wire            rd_status_tx;
-wire    [TX_CONFIG_REG_WIDTH-1:0]  rd_config_tx;
-wire            config_changed_tx;
-wire            status_changed_tx;
+//параметризуемое количество входов
+wire    [CHANNEL_COUNT*TX_CONFIG_REG_WIDTH-1:0]  wr_config_tx;
+wire    [CHANNEL_COUNT*TX_CONFIG_REG_WIDTH-1:0]  rd_config_tx;
+wire    [32*CHANNEL_COUNT-1:0]  wr_data_tx;
+wire    [CHANNEL_COUNT-1:0]     data_we_tx;
+wire    [CHANNEL_COUNT-1:0]     config_we_tx;
+wire    [CHANNEL_COUNT-1:0]     rd_status_tx;
+wire    [CHANNEL_COUNT-1:0]     config_changed_tx;
+wire    [CHANNEL_COUNT-1:0]     status_changed_tx;
 
 // rx  communication ports
-wire    [RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx;
-wire            config_we_rx;
-wire            word_picked_rx;
-wire    [RX_STATUS_REG_WIDTH-1:0]  rd_status_rx;
-wire    [RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx;
-wire    [31:0]  rd_data_rx;
-wire            config_changed_rx;
-wire            data_status_changed_rx;
+wire    [CHANNEL_COUNT*RX_CONFIG_REG_WIDTH-1:0]  wr_config_rx;
+wire    [CHANNEL_COUNT*RX_STATUS_REG_WIDTH-1:0]  rd_status_rx;
+wire    [CHANNEL_COUNT*RX_CONFIG_REG_WIDTH-1:0]  rd_config_rx;
+wire    [32*CHANNEL_COUNT-1:0]  rd_data_rx;
+wire    [CHANNEL_COUNT-1:0]     config_we_rx;
+wire    [CHANNEL_COUNT-1:0]     word_picked_rx;
+wire    [CHANNEL_COUNT-1:0]     config_changed_rx;
+wire    [CHANNEL_COUNT-1:0]     data_status_changed_rx;
 
 Router#(TX_CONFIG_REG_WIDTH,
           RX_CONFIG_REG_WIDTH,
-          RX_STATUS_REG_WIDTH,1) test_module (
+          RX_STATUS_REG_WIDTH, CHANNEL_COUNT) router (
   .clk                    (clk),
   .rst_n                  (rst_n),
   .fifo_read_empty        (in_fifo_read_empty),
@@ -125,32 +125,36 @@ Router#(TX_CONFIG_REG_WIDTH,
   .rd_data_rx             (rd_data_rx),
   .data_status_changed_rx (data_status_changed_rx)
   );
-  SlTransmitter trans(
-     .rst_n            (rst_n),
-     .clk              (clk),
-     .SL0              (SL0_out),
-     .SL1              (SL1_out),
-     .data_a           (wr_data_tx),
-     .send_imm         (data_we_tx),
-     .wr_config_w      (wr_config_tx),
-     .r_config_w       (rd_config_tx),
-     .wr_config_enable (config_we_tx),
-     .send_in_process  (rd_status_tx ),
-     .status_changed   (status_changed_tx )
-    );
-    SlReceiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
-        .word_picked                (word_picked_rx),
-        .rst_n                      (rst_n),
-        .serial_line_zeroes_a       (SL0_in),
-        .serial_line_ones_a         (SL1_in),
-        .r_config_w                 (rd_config_rx),
-        .data_w                     (rd_data_rx),
-        .wr_config_w                (wr_config_rx),
-        .status_w                   (rd_status_rx),
-        .clk                        (clk),
-        .wr_enable                  (config_we_rx),
-        .data_status_changed(data_status_changed_rx)
-    );
-
+  genvar i;
+  generate
+  for (i=0; i<CHANNEL_COUNT; i=i+1) begin
+    SlTransmitter trans(
+       .rst_n            (rst_n),
+       .clk              (clk),
+       .SL0              (SL0_out [i]),
+       .SL1              (SL1_out [i]),
+       .data_a           (wr_data_tx [(i+1)*32-1:i*32]),
+       .send_imm         (data_we_tx [i]),
+       .wr_config_w      (wr_config_tx [(i+1)*TX_CONFIG_REG_WIDTH-1:i*TX_CONFIG_REG_WIDTH]),
+       .r_config_w       (rd_config_tx [(i+1)*TX_CONFIG_REG_WIDTH-1:i*TX_CONFIG_REG_WIDTH]),
+       .wr_config_enable (config_we_tx [i]),
+       .send_in_process  (rd_status_tx [i]),
+       .status_changed   (status_changed_tx [i])
+      );
+      SlReceiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
+          .rst_n                      (rst_n),
+          .clk                        (clk),
+          .word_picked                (word_picked_rx [i]),
+          .serial_line_zeroes_a       (SL0_in [i]),
+          .serial_line_ones_a         (SL1_in [i]),
+          .r_config_w                 (rd_config_rx [(i+1)*RX_CONFIG_REG_WIDTH-1:i*RX_CONFIG_REG_WIDTH]),
+          .data_w                     (rd_data_rx[(i+1)*32-1:i*32]),
+          .wr_config_w                (wr_config_rx [(i+1)*RX_CONFIG_REG_WIDTH-1:i*RX_CONFIG_REG_WIDTH]),
+          .status_w                   (rd_status_rx [(i+1)*RX_STATUS_REG_WIDTH-1:i*RX_STATUS_REG_WIDTH]),
+          .wr_enable                  (config_we_rx[i]),
+          .data_status_changed        (data_status_changed_rx[i])
+      );
+  end
+endgenerate
 
 endmodule // SlTranciever
