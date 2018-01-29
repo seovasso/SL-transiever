@@ -16,14 +16,14 @@
 |AsyncFifo              |Асинхронный буфер                    |не создана           |не создан            |[src][FifoRtl] |[TB][FifoTb]
 |ApbCommunicator        |Связывает апб с буферами             |[в работе][ApbSpec]  |не создан            |[src][ApbRtl]  |[TB][ApbTb]
 
-[TopSpec]: sl_tranciever_spec.adoc
-[TopTest]: apb_sl_brdige_test_plan.adoc
-[TransSpec]: sl_tx_spec.adoc
-[TransTest]: sl_tx_test_plan.adoc
-[RecSpec]: sl_rx_spec.adoc
-[RecTest]: sl_rx_test_plan.adoc
-[RoutSpec]: router_spec.adoc
-[ApbSpec]: apb_2_fifo_spec.adoc
+[TopSpec]:    spec_SlTransiever.adoc
+[TopTest]:    testplan_SlTransiever.adoc
+[TransSpec]:  spec_SlTransmitter.adoc
+[TransTest]:  testplan_SlTransmitter.adoc
+[RecSpec]:    spec_SlReciever.adoc
+[RecTest]:    testplan_SlReciever.adoc
+[RoutSpec]:   spec_Router.adoc
+[ApbSpec]:    spec_ApbCommunicator.adoc
 
 [MainRtl]:../../rtl/SlTransiever.v
 [MainTb]:../../bench/hdl/SLTransieverTB.sv
