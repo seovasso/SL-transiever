@@ -105,7 +105,7 @@ parameter WRITE_WAIT      = 0,
           WRITE_TX_CONFIG = 1, // write to transmitter register states
           WRITE_TX_DATA   = 2,
           WRITE_RX_CONFIG = 3, // write to reciever register states
-          WRITE_CHANNEL   = 4, // write to channel reg state
+          WRITE_INST_ADDR   = 4, // write to channel reg state
           WRITE_ERROR     = 5;
 //reading from registers state machine
 reg [6:0] out_state_r;
@@ -116,7 +116,7 @@ parameter READ_WAIT      = 0,
           READ_RX_CONFIG = 3, // write to reciever register states
           READ_RX_STATUS = 4,
           READ_RX_DATA   = 5,
-          READ_CHANNEL   = 6; // write to channel reg state
+          READ_INST_ADDR   = 6; // write to channel reg state
 wire transmitter_is_busy; //status busy bit
 wire reciever_is_busy; // reciever busy bit
 assign transmitter_is_busy = rd_status_tx_arr[channel_w];
@@ -153,7 +153,7 @@ always @* begin: in_fsm_next_calculate
   case (1'b1)
     in_state_r[WRITE_WAIT]:
       if (!fifo_read_empty)
-        if (in_modifier == INST_ADDR_MODIFIER)          in_next[WRITE_CHANNEL  ] = 1'b1;
+        if (in_modifier == INST_ADDR_MODIFIER)          in_next[WRITE_INST_ADDR  ] = 1'b1;
         else
           if (is_rec_w) begin: rx_processing
             if (!reciever_is_busy) begin
@@ -170,7 +170,7 @@ always @* begin: in_fsm_next_calculate
             end else                                  in_next[WRITE_WAIT     ] = 1'b1;
           end: tx_processing
       else                                            in_next[WRITE_WAIT     ] = 1'b1;
-    in_state_r [WRITE_CHANNEL],
+    in_state_r [WRITE_INST_ADDR],
     in_state_r [WRITE_RX_CONFIG],
     in_state_r [WRITE_TX_CONFIG],
     in_state_r [WRITE_TX_DATA],
@@ -215,7 +215,7 @@ endgenerate
         fifo_read_inc     <= 0;
         addr_changed_r <= 0;
       end
-      in_next [WRITE_CHANNEL]: begin
+      in_next [WRITE_INST_ADDR]: begin
         inst_addr_r <= (fifo_read_data[INST_ADDR_REG_SIZE-1:1] <= CHANNEL_COUNT)? fifo_read_data[INST_ADDR_REG_SIZE-1:0]:0 ;
         addr_changed_r <= 1;
         fifo_read_inc     <= 1;
@@ -256,48 +256,48 @@ always @* begin: out_fsm_next_calculate
   case (1'b1)
     out_state_r [READ_WAIT     ]:
       if (!fifo_write_full)   begin
-        if (addr_changed_r)                              out_next[READ_CHANNEL  ] = 1'b1;
+        if (addr_changed_r)                                out_next[READ_INST_ADDR  ] = 1'b1;
         else if (config_changed_tx && !is_rec_w)           out_next[READ_TX_CONFIG] = 1'b1;
         else if (config_changed_rx &&  is_rec_w)           out_next[READ_RX_CONFIG] = 1'b1;
         else if (data_status_changed_rx_arr [channel_w] && is_rec_w)       out_next[READ_RX_DATA  ] = 1'b1;
         else if (status_changed_tx_arr [channel_w] &&  !is_rec_w)          out_next[READ_TX_STATUS] = 1'b1;
         else                                                out_next[READ_WAIT     ] = 1'b1;
       end else                                              out_next[READ_WAIT     ] = 1'b1;
-    out_state_r [READ_CHANNEL  ]:
+    out_state_r [READ_INST_ADDR  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r)
           if (is_rec_w)                              out_next[READ_RX_DATA  ] = 1'b1;
           else                                        out_next[READ_TX_STATUS] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_DATA  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r)                       out_next[READ_RX_STATUS] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_CONFIG  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r) begin
           if (!config_changed_rx)                         out_next[READ_WAIT     ] = 1'b1;
           else                                            out_next[READ_RX_CONFIG] = 1'b1;
-        end else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        end else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_RX_STATUS  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r)                       out_next[READ_RX_CONFIG] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_CONFIG  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r) begin
           if (!config_changed_tx)                         out_next[READ_WAIT     ] = 1'b1;
           else                                            out_next[READ_TX_CONFIG] = 1'b1;
-        end else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        end else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
       out_state_r [READ_TX_STATUS  ]:
       if (!fifo_write_full) begin
         if (!addr_changed_r)                       out_next[READ_TX_CONFIG] = 1'b1;
-        else                                          out_next[READ_CHANNEL  ] = 1'b1;
+        else                                          out_next[READ_INST_ADDR  ] = 1'b1;
       end else                                        out_next[READ_WAIT     ] = 1'b1;
   endcase
 end: out_fsm_next_calculate
@@ -323,7 +323,7 @@ always @(posedge clk, negedge rst_n) begin
         fifo_write_inc <= 0;
         word_picked_rx_arr [channel_w] <= 0;
       end
-      out_next  [READ_CHANNEL  ]: begin
+      out_next  [READ_INST_ADDR  ]: begin
         fifo_write_data <= {INST_ADDR_MODIFIER, 32'b0 | inst_addr_r};
         fifo_write_inc <= 1;
         word_picked_rx_arr [channel_w] <= 0;
