@@ -28,10 +28,11 @@ module SlTransieverTB(
     logic                     pready;
     // logic                     pslverr;
     // vars for SLChannels
-    logic SL0_in;
-    logic SL1_in;
-    logic SL0_out;
-    logic SL1_out;
+    logic SL0;
+    logic SL1;
+    wire SL0_w;
+    wire SL1_w;
+
 //instances
 
 
@@ -48,10 +49,9 @@ module SlTransieverTB(
           // .pslverr              (pslverr),
           .rst_n                (reset_n),
           .clk                  (clk),
-          .SL0_in               (SL0_in),
-          .SL1_in               (SL1_in),
-          .SL0_out              (SL0_out),
-          .SL1_out              (SL1_out)
+          .SL0               (SL0_w),
+          .SL1               (SL1_w)
+
    );
 
    //SLMasseges tasks
@@ -97,40 +97,40 @@ module SlTransieverTB(
         for (int i=0; i < mesLength; i=i+1) begin
          if(!mess[i])begin
               parSl0 = parSl0^1;
-              #(SlClkLength/2) SL0_in=1;
-              SL0_in=0;
+              #(SlClkLength/2) SL0=1;
+              SL0=0;
               #(SlClkLength);
-              SL0_in=1;
+              SL0=1;
               #(SlClkLength/2);
          end else begin
              parSl1 = parSl1^1;
              #(SlClkLength/2);
-             SL1_in=1;
-             SL1_in=0;
+             SL1=1;
+             SL1=0;
              #(SlClkLength);
-             SL1_in=1;
+             SL1=1;
              #(SlClkLength/2);
          end
         end
-        SL1_in = 1;
-        SL0_in = 1;
+        SL1 = 1;
+        SL0 = 1;
         #(SlClkLength/2);
         if (parityRight)begin
-          SL0_in = parSl0; // бит четности по 0
-          SL1_in = parSl1; // бит четности по 1
+          SL0 = parSl0; // бит четности по 0
+          SL1 = parSl1; // бит четности по 1
         end else begin
-          SL0_in = !parSl0; // неправильный бит четности по 0
-          SL1_in = !parSl1; // неправильный бит четности по 1
+          SL0 = !parSl0; // неправильный бит четности по 0
+          SL1 = !parSl1; // неправильный бит четности по 1
         end
         #(SlClkLength);
-        SL1_in = 1;
-        SL0_in = 1;
+        SL1 = 1;
+        SL0 = 1;
         #(SlClkLength);
-        SL0_in=0;
-        SL1_in=0;
+        SL0=0;
+        SL1=0;
         #(SlClkLength);
-        SL0_in=1;
-        SL1_in=1;
+        SL0=1;
+        SL1=1;
         #(SlClkLength/2);
         end
    endtask
@@ -195,8 +195,8 @@ int lastCorrMsg;
     currTestPassed = 1;
     allTestsPassed = 1;
     readedData = 1;
-    SL0_in = 1;
-    SL1_in = 1;
+    SL0 = 1;
+    SL1 = 1;
     clk = 0;
     pclk = 1;
     preset_n = 1;
