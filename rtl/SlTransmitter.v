@@ -8,14 +8,11 @@ module SlTransmitter (
   output wire SL1,
 
   // Data and command from master
-  input wire [31:0] data_a,
-  input wire send_imm,
-  input wire  [9:0]wr_config_w,
-  input wire wr_config_enable,
-  output wire [9:0]r_config_w,
-  output wire send_in_process,
-  output reg  status_changed
-    );
+  input   wire [31:0] d_in,
+  input   wire        addr,
+  input   wire        wr_en,
+  output  wire [31:0] d_out
+  );
 
 
 
@@ -54,8 +51,10 @@ parameter BQL  = 0, // bit quantity low bit
 
 assign SL0 = sl0_r;
 assign SL1 = sl1_r;
-assign r_config_w = config_r;
-assign send_in_process = status_r;
+
+assign d_out = addr? txdata_r:{16'b0|status_r, 16'b0|config_r}; //выходной мультиплексор выводов регистров
+
+
 //assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
 
 assign freq_devide_cnt_next = (freq_devide_cnt_r < freq_devide_cnt_max && !state_r[IDLE])? freq_devide_cnt_r+5'b1 : 5'd0;
@@ -93,7 +92,7 @@ always @* begin
   next_r = 8'b0;
   case( 1'b1 ) // synopsys parallel_case
   //were (state_r), but here we using reverse case to make sure it compare only one bit in a vector
-    state_r[       IDLE]: if( send_imm && !status_r )                            next_r[ START_SEND] = 1'b1;
+    state_r[       IDLE]: if( wr_en && !status_r && !addr )                      next_r[ START_SEND] = 1'b1;
                           else                                                   next_r[       IDLE] = 1'b1;
     state_r[ START_SEND]:
       if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[ START_SEND] = 1'b1;
@@ -124,7 +123,12 @@ always @* begin
   endcase
 end
 
-assign config_r_next = (wr_config_enable && wr_config_w[BQH:BQL]>=6'd8 && !wr_config_w[BQL])? wr_config_w: config_r;
+//проверка коорректности конфигурации
+assign config_r_next = (wr_en && addr // идет запись в нужный регистр
+                        && d_in[BQH:BQL]>=6'd8 && d_in[BQH:BQL]<=6'd32 //длинна сообщения верна
+                         && !d_in[BQL] // длинна сообщения четная
+                         )? d_in[9:0]: config_r;
+
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
@@ -137,13 +141,13 @@ always @(posedge clk, negedge rst_n) begin
   end else begin
       case( 1'b1 ) // synopsys parallel_case
         next_r[        IDLE]: begin
-                                if (send_imm && freq_devide_cnt_r == 5'b0) txdata_r <= data_a;
+                                if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in; //TODO: разобраться с этой строчкой
                                 bitcnt_r <= 0;
                                 status_r <= 1'b0;
-                                config_r<=config_r_next;
+                                config_r <= config_r_next;
                               end
         next_r[  START_SEND]: begin
-                                if (send_imm && freq_devide_cnt_r == 5'b0) txdata_r <= data_a;
+                                if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in;
                                 status_r <= 1'b1;
                               end
         next_r[         ONE]: begin
@@ -178,16 +182,16 @@ always @(posedge clk, negedge rst_n) begin
     end
 end
 
-wire status_changed_next;
-assign status_changed_next =
-      ((next_r[START_SEND] == 1'b1 && freq_devide_cnt_next == 5'd0) ||
-       (next_r[IDLE] == 1'b1       && freq_devide_cnt_r==freq_devide_cnt_max))? 1:0;
-always @(posedge clk, negedge rst_n)
-if( !rst_n ) begin
-  status_changed   <= 1'b0;
-end else begin
-  status_changed   <= status_changed_next;
-end
+// wire status_changed_next;
+// assign status_changed_next =
+//       ((next_r[START_SEND] == 1'b1 && freq_devide_cnt_next == 5'd0) ||
+//        (next_r[IDLE] == 1'b1       && freq_devide_cnt_r==freq_devide_cnt_max))? 1:0;
+// always @(posedge clk, negedge rst_n)
+// if( !rst_n ) begin
+//   status_changed   <= 1'b0;
+// end else begin
+//   status_changed   <= status_changed_next;
+// end
 
 
 
