@@ -1,9 +1,9 @@
 module SlTransiever#(parameter CHANNEL_COUNT = 1)
-                    ( input  [CHANNEL_COUNT-1:0] SL0_in,
-                      input  [CHANNEL_COUNT-1:0] SL1_in,
-                      output [CHANNEL_COUNT-1:0] SL0_out,
-                      output [CHANNEL_COUNT-1:0] SL1_out,
+                    ( // sl ports
+                      inout  [CHANNEL_COUNT-1:0] SL0,
+                      inout  [CHANNEL_COUNT-1:0] SL1,
 
+                      // apb ports
                       input                       pclk, //синхронизация шины
                       input                       preset_n, //ресет apb
                       input       [15:0]          paddr,
@@ -17,6 +17,7 @@ module SlTransiever#(parameter CHANNEL_COUNT = 1)
                       input         rst_n,
                       input         clk
                       );
+//провода для соединения буферов и ApbCommunicator
 wire                 fifo_read_empty;
 wire                 fifo_write_full;
 wire                 fifo_write_empty;
@@ -24,7 +25,10 @@ wire  [33:0]         fifo_read_data;
 wire                 fifo_read_inc;
 wire  [33:0]         fifo_write_data;
 wire                 fifo_write_inc;
-ApbCommunicator mod (
+
+wire  [CHANNEL_COUNT*2-1:0] soft_reset_n; // конфигурация софт ресета
+
+ApbCommunicator#(CHANNEL_COUNT) mod (
                .pclk                 (pclk),
                .preset_n             (preset_n),
                .psel                 (psel),
@@ -41,7 +45,8 @@ ApbCommunicator mod (
                .fifo_write_inc       (fifo_write_inc),
                .fifo_write_data      (fifo_write_data),
                .fifo_write_full      (fifo_write_full),
-               .fifo_write_empty     (fifo_write_empty)
+               .fifo_write_empty     (fifo_write_empty),
+               .soft_reset_n           (soft_reset_n)
               );
 
 parameter TX_CONFIG_REG_WIDTH  = 10;
@@ -125,11 +130,28 @@ Router#(TX_CONFIG_REG_WIDTH,
   .rd_data_rx             (rd_data_rx),
   .data_status_changed_rx (data_status_changed_rx)
   );
+
+
+  wire  [CHANNEL_COUNT-1:0] SL0_in;//входы созданных приемников
+  wire  [CHANNEL_COUNT-1:0] SL1_in;
+  wire  [CHANNEL_COUNT-1:0] SL0_out;//выходы созданных передатчиков
+  wire  [CHANNEL_COUNT-1:0] SL1_out;
   genvar i;
+
+  reg [2*CHANNEL_COUNT-1:0] combined_reset_n;
+  reg [2*CHANNEL_COUNT-1:0] buff_reset_n;
+
+  //сложение софтресета с основным ресетом
+  always @ (posedge clk or negedge rst_n) begin
+    if (!rst_n) {combined_reset_n, buff_reset_n} <= 0;
+    else {combined_reset_n, buff_reset_n} <= {combined_reset_n, soft_reset_n};
+  end
+
   generate
   for (i=0; i<CHANNEL_COUNT; i=i+1) begin
+    //создание приемников и передатчиков
     SlTransmitter trans(
-       .rst_n            (rst_n),
+       .rst_n            (combined_reset_n[i]),
        .clk              (clk),
        .SL0              (SL0_out [i]),
        .SL1              (SL1_out [i]),
@@ -142,7 +164,7 @@ Router#(TX_CONFIG_REG_WIDTH,
        .status_changed   (status_changed_tx [i])
       );
       SlReceiver#(RX_STATUS_REG_WIDTH, RX_CONFIG_REG_WIDTH) res (
-          .rst_n                      (rst_n),
+          .rst_n                      (combined_reset_n[i+1]),
           .clk                        (clk),
           .word_picked                (word_picked_rx [i]),
           .serial_line_zeroes_a       (SL0_in [i]),
@@ -154,6 +176,13 @@ Router#(TX_CONFIG_REG_WIDTH,
           .wr_enable                  (config_we_rx[i]),
           .data_status_changed        (data_status_changed_rx[i])
       );
+
+      // мультиплесор, коммтирующий выходы и входы SL канала
+      assign {SL0[i], SL1[i]} = (combined_reset_n[i] && !combined_reset_n[i+1] )? {SL0_out [i], SL1_out [i]}:2'bzz; // если включен передатчик  и не включен приемник
+      assign  {SL0_in [i], SL1_in [i]} = (combined_reset_n[i] && combined_reset_n[i+1] )? {SL0_out [i], SL1_out [i]} : // если включены оба то заымкаем приемник и ередатчик между собой
+                                      ((!combined_reset_n[i] && combined_reset_n[i+1] )? {SL0[i], SL1[i]}:2'b11); // если аключен только приемник замыкаем входы блока на него.
+
+
   end
 endgenerate
 
