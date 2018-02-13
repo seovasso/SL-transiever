@@ -13,11 +13,8 @@ module SlTransmitterTb();
     // for transmitter
      logic        rst_n;
      logic        clk;
-
      logic        SL0;
      logic        SL1;
-
-
      logic [31:0] d_in;
      logic [31:0] d_out;
      logic wr_en;
@@ -103,19 +100,31 @@ module SlTransmitterTb();
     sendRandomMassage(messageLength);
     addr = 1;
     #clkPeriod;
-    #400;
+    $display("%b", d_out[16])ж
     wait(~d_out[16]);
+
     addr    = 0;
-    if (dataOut != message || bitCount != messageLength || !parityValid) begin
-    currTestPassed = 0;
-    allTestsPassed = 0;
+    if (dataOut != message)  begin
+      $display("Косяк в сообщении %b != %b", dataOut, message);
+      currTestPassed = 0;
+      allTestsPassed = 0;
+    end
+    if ( bitCount != messageLength) begin
+      $display("Косяк в количестве бит %d != %d",  bitCount, messageLength);
+      currTestPassed = 0;
+      allTestsPassed = 0;
+    end
+    if ( parityValid) begin
+      $display("Косяк в четности",  bitCount, messageLength);
+      currTestPassed = 0;
+      allTestsPassed = 0;
     end
     addr = 0;
     $display ("Test #1: massage length=%d frequency=%d %s ",
     frequency_mode,messageLength,(currTestPassed?"passed":"failed"));
   end: test_N
   $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
-
+  $stop();
   end
 
 
