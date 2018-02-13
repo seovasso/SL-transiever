@@ -1,4 +1,5 @@
-module ApbCommunicator(
+module ApbCommunicator #(parameter CHANNEL_COUNT = 1)
+(
 //Apb ports
 input                       pclk, //синхронизация шины
 input                       preset_n, //ресет apb
@@ -17,7 +18,8 @@ input                       fifo_write_empty,
 input        [33:0]         fifo_read_data,
 output  reg                 fifo_read_inc,
 output  reg  [33:0]         fifo_write_data,
-output  reg                 fifo_write_inc
+output  reg                 fifo_write_inc,
+output  wire  [CHANNEL_COUNT*2-1:0] soft_reset_n
     );
 
 parameter WRF = 3; // word recieved flag, needed to say user that there is no new word
@@ -25,7 +27,8 @@ parameter WRF = 3; // word recieved flag, needed to say user that there is no ne
 parameter CONFIG_ADDR    = 16'd1,
           DATA_ADDR      = 16'd2,
           STATUS_ADDR    = 16'd3,
-          CHANNEL_ADDR   = 16'd4;
+          CHANNEL_ADDR   = 16'd4,
+          POWER_MNG_ADDR = 16'd5;
 
 // modifiers
 parameter CONFIG_MODIFIER    = 2'd0,
@@ -64,8 +67,8 @@ always @* begin
   //were (state_r), but here we using reverse case to make sure it compare only one bit in a vector
     state_r[IDLE]:
       if (psel && (paddr == CONFIG_ADDR || paddr == DATA_ADDR
-        || paddr == CHANNEL_ADDR  )  && pwrite)                       next_r[    WRITE] = 1'b1 ;
-      else if ((psel && (paddr == CONFIG_ADDR || paddr == DATA_ADDR
+      || paddr == CHANNEL_ADDR || paddr == POWER_MNG_ADDR)  && pwrite)next_r[    WRITE] = 1'b1 ;
+      else if ((psel && (paddr == CONFIG_ADDR || paddr == DATA_ADDR || paddr == POWER_MNG_ADDR
         || paddr == CHANNEL_ADDR || paddr == STATUS_ADDR)&& !pwrite)) next_r[     READ] = 1'b1 ;
       else                                                            next_r[     IDLE] = 1'b1 ;
     state_r[WRITE]:                                                   next_r[WRITE_END] = 1'b1 ;
@@ -78,31 +81,37 @@ end
 
 
 reg [ 1:0] modifier;
-reg [31:0] reg_out;
+reg [31:0] out_data;
 
 // registers model
 reg [ APB_CONFIG_REG_WIDTH-1:0]  config_r;
 reg [ APB_STATUS_REG_WIDTH-1:0]  status_r;
-reg                  [31:0]  rec_data_r;
+reg [31:0]                     rec_data_r;
 reg [INST_ADDR_REG_WITH-1:0]  inst_addr_r; //регистр сдреса выбранного устройства(приемника или передатчика)
+reg [CHANNEL_COUNT*2-1:0]      pwr_mng_r;
+
 
 wire is_rec_w;// первый бит адреса определяет приемник это или передатчик
 assign is_rec_w = inst_addr_r [0];
 
+//схема выбирающая можификатор для записи и данные для чтения
 always @* case (paddr)
-  CONFIG_ADDR :{modifier,reg_out} = {CONFIG_MODIFIER , 32'd0|config_r  };
-  DATA_ADDR   :{modifier,reg_out} = {DATA_MODIFIER   ,       rec_data_r};
-  STATUS_ADDR :{modifier,reg_out} = {STATUS_MODIFIER , 32'd0|status_r  };
-  CHANNEL_ADDR:{modifier,reg_out} = {INST_ADDR_MODIFIER, 32'd0|inst_addr_r };
-  default     :{modifier,reg_out} = {STATUS_MODIFIER , 32'd0};
+  CONFIG_ADDR   :{modifier,out_data} = {CONFIG_MODIFIER , 32'd0|config_r  };
+  DATA_ADDR     :{modifier,out_data} = {DATA_MODIFIER   ,       rec_data_r};
+  STATUS_ADDR   :{modifier,out_data} = {STATUS_MODIFIER , 32'd0|status_r  };
+  CHANNEL_ADDR  :{modifier,out_data} = {INST_ADDR_MODIFIER, 32'd0|inst_addr_r };
+  POWER_MNG_ADDR:{modifier,out_data} = {STATUS_MODIFIER, 32'd0|pwr_mng_r }; // запись этого регистра в буфер не осуществляется
+  default       :{modifier,out_data} = {STATUS_MODIFIER , 32'd0};
 endcase
 
-
+//выводим порты pwr_mng_r наружу блока
+assign soft_reset_n = pwr_mng_r;
 
 
 
 always @(posedge pclk, negedge preset_n)
   if( !preset_n ) begin
+    pwr_mng_r <= 1;
     pready <= 0;
     prdata <= 32'd0;
     fifo_write_data <= 33'b0;
@@ -116,9 +125,13 @@ always @(posedge pclk, negedge preset_n)
                              fifo_write_inc  <= 0;
                            end
         next_r[WRITE    ]: begin //write apb transaction: writing to async fifo
-                             pready <= 1;
-                             fifo_write_data <= {modifier,pwdata};
-                             fifo_write_inc  <= 1;
+                             if (paddr != POWER_MNG_ADDR) begin
+                               pready <= 1;
+                               fifo_write_data <= {modifier,pwdata};
+                               fifo_write_inc  <= 1;
+                             end else begin
+                               pwr_mng_r<= pwdata[CHANNEL_COUNT*2-1:0];
+                             end
                            end
         next_r[WRITE_END]: begin
                             fifo_write_data <= 33'b0;
@@ -126,7 +139,7 @@ always @(posedge pclk, negedge preset_n)
                            end
         next_r[READ     ]: begin //read apb transaction: reading from registers
                              pready <= 1;
-                             prdata <= reg_out;
+                             prdata <= out_data;
                            end
         next_r[READ_END ]: begin
 
