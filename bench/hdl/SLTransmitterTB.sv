@@ -17,25 +17,20 @@ module SlTransmitterTb();
      logic        SL0;
      logic        SL1;
 
-     logic [9:0]  wr_config_w;
-     logic [9:0]  r_config_w;
-     logic [31:0] data_a;
-     logic        send_in_process;
-     logic        send_imm;
-     logic        wr_config_enable;
-     logic        status_changed;
+
+     logic [31:0] d_in;
+     logic [31:0] d_out;
+     logic wr_en;
+     logic addr;
      SlTransmitter trans(
-        .rst_n            (rst_n           ),
-        .clk              (clk             ),
-        .SL0              (SL0             ),
-        .SL1              (SL1             ),
-        .data_a           (data_a          ),
-        .send_imm         (send_imm        ),
-        .wr_config_w      (wr_config_w     ),
-        .r_config_w       (r_config_w      ),
-        .wr_config_enable (wr_config_enable),
-        .send_in_process  (send_in_process ),
-        .status_changed   (status_changed  )
+        .rst_n            (rst_n),
+        .clk              (clk  ),
+        .SL0              (SL0  ),
+        .SL1              (SL1  ),
+        .d_in             (d_in ),
+        .d_out            (d_out),
+        .wr_en            (wr_en),
+        .addr             (addr )
        );
     SlTestIdeallReciever rec (.rst_n(rst_n),
                               .sl0(SL0),
@@ -56,11 +51,15 @@ module SlTransmitterTb();
     input int length;
     begin
     message = $urandom_range((1<<length-1),0);
-    data_a = message;
-    send_imm = 1;
+    #(1);
+    d_in    = message;
+    addr    = 0;
+    wr_en   = 1;
     #clkPeriod;
-    data_a = 0;
-    send_imm = 0;
+    d_in    = 0;
+    addr    = 0;
+    wr_en   = 0;
+    #(clkPeriod-1);
     end
   endtask
   task configureTransmitter;//отправляет SL посылку
@@ -68,11 +67,13 @@ module SlTransmitterTb();
     input int frequency_mode;
     begin
     #(1);
-    wr_config_w={frequency_mode[2:0],1'b0,length[5:0]};
-    wr_config_enable=1;
+    d_in=32'b0|{frequency_mode[2:0],1'b0,length[5:0]};
+    addr    = 1;
+    wr_en   = 1;
     #(clkPeriod);
-    wr_config_w=0;
-    wr_config_enable=0;
+    d_in    = 0;
+    addr    = 0;
+    wr_en   = 0;
     #(clkPeriod-1);
 
     end
@@ -81,11 +82,11 @@ module SlTransmitterTb();
 
   initial forever #(clkPeriod/2)clk=~clk;
   initial begin
-  wr_config_w = 0;
-  wr_config_enable = 0;
+
+  wr_en = 0;
   clk = 0;
-  data_a = 0;
-  send_imm = 0;
+  d_in = 0;
+  addr = 0;
   rst_n = 1;
   #(clkPeriod/2);
   #50;
@@ -100,23 +101,23 @@ module SlTransmitterTb();
     messageLength = 8+$urandom_range(0,12)*2;
     configureTransmitter(messageLength,frequency_mode);
     sendRandomMassage(messageLength);
-    wait(~send_in_process);
+    addr = 1;
+    #clkPeriod;
+    #400;
+    wait(~d_out[16]);
+    addr    = 0;
     if (dataOut != message || bitCount != messageLength || !parityValid) begin
     currTestPassed = 0;
     allTestsPassed = 0;
     end
+    addr = 0;
     $display ("Test #1: massage length=%d frequency=%d %s ",
     frequency_mode,messageLength,(currTestPassed?"passed":"failed"));
   end: test_N
   $display ("All Tests:  %s ",(allTestsPassed?"passed":"failed"));
 
   end
-always @send_in_process begin
-    if (!status_changed) begin
-      $display ("status_changed test failed");
-      allTestsPassed = 0;
-    end
-end
+
 
 
 
