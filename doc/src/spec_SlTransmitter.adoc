@@ -82,15 +82,16 @@
 .Назначение разрядов регистра состояния (status_r)
 [cols="16*^", width=99%]
 |===
-|16    |17   |18   |19   |20   |21   |22   |23     |24    |25    |26    |27   |28   |29   |30   |31
-|SIP   |Res* |Res* |Res* |Res* |Res* |Res* |Res* 3+|IRQSM |IRQCC |IRQIC |Res* |Res* |Res* |Res* |Res*
+|16    |17   |18   |19   |20   |21   |22   |23     |24    |25    |26    |27     |28   |29   |30   |31
+|SIP   |Res* |Res* |Res* |Res* |Res* |Res* |Res* 3+|IRQSM |IRQCC |IRQIC |IRQDWE |Res* |Res* |Res* |Res*
 |===
 
 .Описание разрядов регистра состояния (status_r)
 . SIP - send in process, сообщение отправлется, при попытке перезаписи этого бита ничего не происходит
 . IRQSM - interrupt request of sent message
-. IRQCC - interrupt request of configuration changed
+. IRQWCC - interrupt request of wrong configuration changed
 . IRQIC - interrupt request of incorrect configuration
+. IRQDWE - interrupt request of data write error
 
 === Регистр данных к отправке
 txdata_r[31:0]
@@ -140,6 +141,7 @@ Data - данные к отправке.
 * Отправка сообщения завершена
 * Была предпринята попытка записать некорректные данные в конфигурационный регистр
 * Изменение конфигурации в процессе отправки сообщения
+* Попытка записать новые данные во время отправки старых
 Причину возникновения можно посмотреть  в соотвествующих полях регистра состояния.
 Для сбрасывания прерываний, вам необходимо считать регистр конфигурации и состояния и
 записать считанное снова, занулив биты прерываний.
