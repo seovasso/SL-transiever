@@ -28,13 +28,19 @@ parameter IDLE        = 0,
 reg [31:0] txdata_r;
 reg [ 7:0] state_r;
 reg [ 7:0] next_r;
-reg [ 9:0] config_r;
+
 reg [ 5:0] bitcnt_r;
 reg [ 4:0] freq_devide_cnt_r;
 reg parity_r;
 reg sl0_r;
 reg sl1_r;
-reg status_r;
+
+// регистры конфигурации и статуса
+reg [15:0] config_r;
+reg [15:0] status_r;
+
+// провод состояния отправки
+wire send_in_process;
 
 reg [4:0] freq_devide_cnt_max ;
 wire[4:0] freq_devide_cnt_next;
@@ -43,16 +49,25 @@ wire[9:0] data_r_next; //Data register next value
 wire      parity_next;
 wire[5:0] bitcnt_r_next;
 // Configuration register bits
-parameter BQL  = 0, // bit quantity low bit
-          BQH  = 5, // bit quantity high bit, BQH-BQL should be 5!
-          IRQM = 6, // interrupt request mode
-          FQL  = 7, // frequency mode low  bit
-          FQH  = 9; // frequency mode high bit
+
+parameter SR   = 0,
+          BQL  = 1, // bit quantity low bit
+          BQH  = 6, // bit quantity high bit, BQH-BQL should be 5!
+          IRQM = 7, // interrupt request mode
+          FQL  = 8, // frequency mode low  bit
+          FQH  = 10; // frequency mode high bit
+// Ыtatus register bits
+parameter SIP   = 0,// send in process
+          IRQSM = 8,//interrupt request of sent message
+          IRQWCC= 9,// interrupt request of wrong configuration changed
+          IRQIC = 10,//interrupt request of incorrect configuration
+          IRQDWE= 11;// interrupt request of data write error
+
 
 assign SL0 = sl0_r;
 assign SL1 = sl1_r;
 
-assign d_out = addr? txdata_r:{16'b0|status_r, 16'b0|config_r}; //выходной мультиплексор выводов регистров
+assign d_out = (addr? txdata_r:{status_r, config_r}); //выходной мультиплексор выводов регистров
 
 
 //assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
@@ -92,32 +107,32 @@ always @* begin
   next_r = 8'b0;
   case( 1'b1 ) // synopsys parallel_case
   //were (state_r), but here we using reverse case to make sure it compare only one bit in a vector
-    state_r[       IDLE]: if( wr_en && !status_r && !addr )                      next_r[ START_SEND] = 1'b1;
+    state_r[       IDLE]: if( wr_en && !addr )                                   next_r[ START_SEND] = 1'b1;
                           else                                                   next_r[       IDLE] = 1'b1;
     state_r[ START_SEND]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[ START_SEND] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[ START_SEND] = 1'b1;
       else if( txdata_r[bitcnt_r] )                                              next_r[        ONE] = 1'b1;
       else                                                                       next_r[       ZERO] = 1'b1;
     state_r[        ONE]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[        ONE] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[        ONE] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[       ZERO]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[       ZERO] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[       ZERO] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[     PARITY]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[     PARITY] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[     PARITY] = 1'b1;
       else                                                                       next_r[ BIT_ENDING] = 1'b1;
     state_r[ BIT_ENDING]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[ BIT_ENDING] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[ BIT_ENDING] = 1'b1;
       else if( txdata_r[bitcnt_r] == 1'b1 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[        ONE] = 1'b1;
       else if( txdata_r[bitcnt_r] == 1'b0 && bitcnt_r[5:0] < config_r[BQH:BQL] ) next_r[       ZERO] = 1'b1;
       else if( bitcnt_r[5:0] == config_r[BQH:BQL])                               next_r[     PARITY] = 1'b1;
       else                                                                       next_r[       STOP] = 1'b1;
     state_r       [STOP]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[       STOP] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[       STOP] = 1'b1;
       else                                                                       next_r[WORD_ENDING] = 1'b1;
     state_r[WORD_ENDING]:
-      if( freq_devide_cnt_r != freq_devide_cnt_max)                              next_r[WORD_ENDING] = 1'b1;
+      if( freq_devide_cnt_r < freq_devide_cnt_max)                              next_r[WORD_ENDING] = 1'b1;
       else                                                                       next_r[       IDLE] = 1'b1;
     //default:                                                                   next_r[       IDLE] = 1'b1;
   endcase
@@ -133,8 +148,7 @@ always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
     bitcnt_r[ 5:0] <= 0;
-    config_r[ 9:0] <= 10'b0100001000;
-    status_r       <= 0;
+    config_r[ 9:0] <= 10'b_010_0_001000_0;
     parity_r       <= 0;
     sl0_r    <= 1;
     sl1_r    <= 1;
@@ -143,12 +157,10 @@ always @(posedge clk, negedge rst_n) begin
         next_r[        IDLE]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in; //TODO: разобраться с этой строчкой
                                 bitcnt_r <= 0;
-                                status_r <= 1'b0;
                                 config_r <= config_r_next;
                               end
         next_r[  START_SEND]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in;
-                                status_r <= 1'b1;
                               end
         next_r[         ONE]: begin
                                 sl0_r    <= 1'b1;
@@ -180,6 +192,42 @@ always @(posedge clk, negedge rst_n) begin
 
       endcase
     end
+end
+
+wire end_of_msg;
+wire incorrect_config;
+wire config_is_different;
+
+assign send_in_process = !next_r[IDLE];
+assign end_of_msg = (next_r[WORD_ENDING] && freq_devide_cnt_next == freq_devide_cnt_max);
+assign config_is_incorrect = ((d_in[BQH:BQL] >= 6'd8 && d_in[BQH:BQL] <= 6'd32) //длинна сообщения верна
+                                && !d_in[BQL] // длинна сообщения четная
+                              );
+assign config_is_different = (   d_in[BQH:BQL] != config_r[BQH:BQL] //длинна нового слова не совпадает
+                              && d_in[FQH:FQL] != config_r[FQH:FQL] //другая частота
+                              );
+
+always @ (posedge clk, negedge rst_n) begin
+  if( !rst_n ) begin
+    status_r       <= 0;
+  end else begin
+    //SIP bit processing
+      status_r[SIP] <= send_in_process;
+    //IRQ BITS processing
+      if (end_of_msg) status_r[IRQSM]  <= 1; // конец отправки
+      else if (wr_en && addr && !d_in[IRQSM])   status_r[IRQSM]  <= 0; // сброс прерывания
+
+      if (wr_en && addr && config_is_incorrect) status_r[IRQIC]  <= 1; //попытка записать неверную конфигурацию
+      else if (wr_en && addr && !d_in[IRQIC])   status_r[IRQIC]  <= 0; // сброс прерывания
+
+      if (wr_en && addr && config_is_different
+                       && !config_is_incorrect) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
+      else if (wr_en && addr && !d_in[IRQWCC])  status_r[IRQWCC] <= 0; // сброс прерывания
+
+      if (wr_en && addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
+      else if (wr_en && addr && !d_in[IRQDWE])  status_r[IRQDWE] <= 0; // сброс прерывания
+
+  end
 end
 
 // wire status_changed_next;
