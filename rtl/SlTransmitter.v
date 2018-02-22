@@ -150,7 +150,7 @@ always @(posedge clk, negedge rst_n) begin
         next_r[        IDLE]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in; //TODO: разобраться с этой строчкой
                                 bitcnt_r <= 0;
-                                config_r <= config_r_next;
+
                               end
         next_r[  START_SEND]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in;
@@ -192,7 +192,7 @@ wire incorrect_config;
 wire config_is_different;
 
 assign send_in_process = !next_r[IDLE];
-assign end_of_msg = (next_r[WORD_ENDING] && freq_devide_cnt_next == freq_devide_cnt_max);
+assign end_of_msg = (state_r[WORD_ENDING] && freq_devide_cnt_r >= freq_devide_cnt_max);
 assign config_is_incorrect = !((d_in[BQH:BQL] >= 6'd8 && d_in[BQH:BQL] <= 6'd32) //длинна сообщения верна
                                 && !d_in[BQL] // длинна сообщения четная
                               );
@@ -214,11 +214,10 @@ always @ (posedge clk, negedge rst_n) begin
       if (wr_en && addr && config_is_incorrect) status_r[IRQIC]  <= 1; //попытка записать неверную конфигурацию
       else if (wr_en && addr && !d_in[IRQIC])   status_r[IRQIC]  <= 0; // сброс прерывания
 
-      if (wr_en && addr && config_is_different
-                       && !config_is_incorrect) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
+      if (wr_en && addr && config_is_different) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
       else if (wr_en && addr && !d_in[IRQWCC])  status_r[IRQWCC] <= 0; // сброс прерывания
 
-      if (wr_en && addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
+      if (wr_en && !addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
       else if (wr_en && addr && !d_in[IRQDWE])  status_r[IRQDWE] <= 0; // сброс прерывания
 
     //config register processing
