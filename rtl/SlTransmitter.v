@@ -203,7 +203,7 @@ assign config_is_different = (   d_in[BQH:BQL] != config_r[BQH:BQL] //длинн
 always @ (posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
       status_r       <= 16'h0000;
-      config_r[16:0] <= 16'b_010_0_001000_0;
+      config_r[15:0] <= 16'b_010_0_001000_0;
   end else begin
     //SIP bit processing
       status_r[SIP] <= send_in_process;
