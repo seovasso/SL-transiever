@@ -292,7 +292,8 @@ bit_i++;<y:LabelModel>
           <y:Geometry height="66.0" width="132.0" x="232.5" y="823.0"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="109.052734375" x="11.4736328125" y="23.6494140625">bit_i &lt;= (max+2) * 2<y:LabelModel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="33.40234375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="81.0625" x="25.46875" y="16.298828125">bit_i &lt;= 
+ bit_count*2+3<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
