@@ -103,6 +103,7 @@ int buff;
     buff = d_out;
     buff = buff & ~(32'b1<<24);
     d_in = buff;
+    #clkPeriod;
     wr_en = 1;
     #clkPeriod;
     wr_en=0;
