@@ -75,7 +75,7 @@ module SlTransmitterTb();
 
     end
   endtask
-
+int buff;
 
   initial forever #(clkPeriod/2)clk=~clk;
   initial begin
@@ -96,6 +96,19 @@ module SlTransmitterTb();
     addr = 1;
     #clkPeriod;
     wait(~d_out[16]);
+    #clkPeriod;
+    sendRandomMassage(8);
+    addr = 1;
+    #(clkPeriod*10);
+    buff = d_out;
+    buff = buff & ~(32'b1<<24);
+    d_in = buff;
+    #clkPeriod;
+    wr_en = 1;
+    #clkPeriod;
+    wr_en=0;
+
+
   #500;
   //Test 1
   // for (int i=0; i<6; i++) begin: test_N

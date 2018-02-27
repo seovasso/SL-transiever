@@ -67,7 +67,6 @@ parameter SIP   = 0,// send in process
 assign SL0 = sl0_r;
 assign SL1 = sl1_r;
 
-assign d_out = (addr? txdata_r:{status_r, config_r}); //выходной мультиплексор выводов регистров
 
 
 //assign freq_devide_cnt_max = 6'b1 << config_r[FQH:FQH];
@@ -138,17 +137,11 @@ always @* begin
   endcase
 end
 
-//проверка коорректности конфигурации
-assign config_r_next = (wr_en && addr // идет запись в нужный регистр
-                        && d_in[BQH:BQL]>=6'd8 && d_in[BQH:BQL]<=6'd32 //длинна сообщения верна
-                         && !d_in[BQL] // длинна сообщения четная
-                         )? d_in[9:0]: config_r;
 
 always @(posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
     txdata_r[31:0] <= 0;
     bitcnt_r[ 5:0] <= 0;
-    config_r[ 9:0] <= 10'b_010_0_001000_0;
     parity_r       <= 0;
     sl0_r    <= 1;
     sl1_r    <= 1;
@@ -157,7 +150,7 @@ always @(posedge clk, negedge rst_n) begin
         next_r[        IDLE]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in; //TODO: разобраться с этой строчкой
                                 bitcnt_r <= 0;
-                                config_r <= config_r_next;
+
                               end
         next_r[  START_SEND]: begin
                                 if (wr_en && !addr && freq_devide_cnt_r == 5'b0) txdata_r <= d_in;
@@ -199,8 +192,8 @@ wire incorrect_config;
 wire config_is_different;
 
 assign send_in_process = !next_r[IDLE];
-assign end_of_msg = (next_r[WORD_ENDING] && freq_devide_cnt_next == freq_devide_cnt_max);
-assign config_is_incorrect = ((d_in[BQH:BQL] >= 6'd8 && d_in[BQH:BQL] <= 6'd32) //длинна сообщения верна
+assign end_of_msg = (state_r[WORD_ENDING] && freq_devide_cnt_r >= freq_devide_cnt_max);
+assign config_is_incorrect = !((d_in[BQH:BQL] >= 6'd8 && d_in[BQH:BQL] <= 6'd32) //длинна сообщения верна
                                 && !d_in[BQL] // длинна сообщения четная
                               );
 assign config_is_different = (   d_in[BQH:BQL] != config_r[BQH:BQL] //длинна нового слова не совпадает
@@ -209,7 +202,8 @@ assign config_is_different = (   d_in[BQH:BQL] != config_r[BQH:BQL] //длинн
 
 always @ (posedge clk, negedge rst_n) begin
   if( !rst_n ) begin
-    status_r       <= 0;
+      status_r       <= 16'h0000;
+      config_r[15:0] <= 16'b_010_0_001000_0;
   end else begin
     //SIP bit processing
       status_r[SIP] <= send_in_process;
@@ -220,15 +214,18 @@ always @ (posedge clk, negedge rst_n) begin
       if (wr_en && addr && config_is_incorrect) status_r[IRQIC]  <= 1; //попытка записать неверную конфигурацию
       else if (wr_en && addr && !d_in[IRQIC])   status_r[IRQIC]  <= 0; // сброс прерывания
 
-      if (wr_en && addr && config_is_different
-                       && !config_is_incorrect) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
+      if (wr_en && addr && config_is_different) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
       else if (wr_en && addr && !d_in[IRQWCC])  status_r[IRQWCC] <= 0; // сброс прерывания
 
-      if (wr_en && addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
+      if (wr_en && !addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
       else if (wr_en && addr && !d_in[IRQDWE])  status_r[IRQDWE] <= 0; // сброс прерывания
 
+    //config register processing
+      if (wr_en && addr && !config_is_incorrect) config_r[15:0]  <= d_in[15:0]; //запись конфигцрации
   end
 end
+
+assign d_out = ((addr == 0)? txdata_r: ({status_r, config_r })); //выходной мультиплексор выводов регистров
 
 // wire status_changed_next;
 // assign status_changed_next =
