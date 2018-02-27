@@ -88,10 +88,10 @@
 
 .Описание разрядов регистра состояния (status_r)
 . SIP - send in process, сообщение отправлется, при попытке перезаписи этого бита ничего не происходит
-. IRQSM - interrupt request of sent message
-. IRQWCC - interrupt request of wrong configuration changed
-. IRQIC - interrupt request of incorrect configuration
-. IRQDWE - interrupt request of data write error
+. IRQSM - interrupt request of sent message, прерывание успешно отправленного сообщения
+. IRQWCC - interrupt request of wrong configuration changed, прерывание попытки сменить конфигурацию во время отправки сообщения
+. IRQIC - interrupt request of incorrect configuration, прерывание попытки установить неверную конфигурацию
+. IRQDWE - interrupt request of data write error, прерывание попытки записать сообщение во время отправки предыдущего
 
 === Регистр данных к отправке
 txdata_r[31:0]
