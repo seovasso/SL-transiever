@@ -83,7 +83,7 @@
 . IRQIC - interrupt request of incorrect configuration
 
 === Регистр полученных данных
-buffered_data_r[31:0]
+buffered_data_r[31:0];
 
 .Назначение разрядов регистра полученных данных (buffered_data_r)
 [cols="1*^", width=99%]
