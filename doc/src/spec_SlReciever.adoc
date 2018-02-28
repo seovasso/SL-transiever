@@ -68,16 +68,16 @@
 [cols="16*^", width=99%]
 |===
 |16    |17   |18   |19   |20   |21   |22   |23    |24    |25     |26     |27     |28     |29    |30   |31
-|WRP   |PEF  |Res* |Res* |Res* |Res* |Res* |Res*  |IRQRM |IRQPEM |IRQWLC |IRQLEF |IRQWCC |IRQIC |Res* |Res*
+|WRP   |PEF  |Res* |Res* |Res* |Res* |Res* |Res* |Res*  |IRQRM |IRQPEM |IRQWLC |IRQLEF |IRQWCC |IRQIC |Res* |Res*
 |===
 
 .Описание разрядов регистра состояния (status_r)
 . WRP - word receiving process, флаг идущего процесса приема слова по SL-каналу
-. PEF - parity error flag, флаг наличия (PEF = 1) ошибки четности принятого слова
+. PEF - parity error flag, присутствует ли ошибка четности в хранящемся в буфере сообщении
 . IRQRM - interrupt request of recieved message - прерывание успешно принятого сообщения
 . IRQPEM - interrupt request of parity error message, принято слово не прошедшее проверку четности
 . IRQWLC - interrupt request of word length check, принято слово не прошедшее проверку длины полученного слова на равенство значению BC регистра config_r
-. IRQLEF - interrupt request of level error on line flag, прерывание ошибки уровня напряжения на линии SL-канала
+. IRQLE - interrupt request of level error on line, прерывание ошибки уровня напряжения на линии SL-канала
 . IRQWCC - interrupt request of wrong configuration changed - прерывание смены конфигурации во время приема сообщения
 . IRQIC - interrupt request of incorrect configuration  прерывание попытки смены конфигурации на неверную
 . Res* - Зарезервированно
