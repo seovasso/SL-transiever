@@ -146,7 +146,7 @@ Data - данные к отправке.
 .Выключение модуля
 При выключении приемника (поле регистра конфигурации SR = "1"), приемник прекращает прием текущего сообщения.
 
-[[trans-state-machine]]
+[[rec-state-machine]]
 == Алгоритмы работы
 image::image_SlReciever_irq_algorithm.png[title="Алгоритм работы регистра состояния модуля SlReciever", align="center"]
 [[rec-state-machine]]
