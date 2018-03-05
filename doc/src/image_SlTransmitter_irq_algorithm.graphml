@@ -171,7 +171,7 @@ IRQIC =0<y:LabelModel>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="77.505859375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="225.009765625" x="6.3504366541666855" y="11.580403645833371">IRQSM = (!IRQSM_in)? 0 : IRQSM;
 IRQDWE = (!IRQDWE_in)? 0 : IRQDWE;
 IRQWCC = (!IRQWCC_in)? 0 : IRQWCC;
-IRQIC = (!IRQIC_in)? 0 : IRQIC;
+IRQICC = (!IRQICC_in)? 0 : IRQICC;
 (сброс прерываний) <y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -239,7 +239,7 @@ IRQIC = (!IRQIC_in)? 0 : IRQIC;
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="77.505859375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="225.009765625" x="6.350436654166742" y="11.580403645833371">IRQSM = (!IRQSM_in)? 0 : IRQSM;
 IRQDWE = (!IRQDWE_in)? 0 : IRQDWE;
 IRQWCC = (!IRQWCC_in)? 0 : IRQWCC;
-IRQIC = (!IRQIC_in)? 0 : IRQIC;
+IRQICC = (!IRQICC_in)? 0 : IRQICC;
 (сброс прерываний) <y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -272,7 +272,7 @@ IRQIC = (!IRQIC_in)? 0 : IRQIC;
           <y:Geometry height="56.5" width="113.0" x="647.6186794666669" y="670.1759999999999"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="37.333984375" x="37.8330078125" y="18.8994140625">IRQIC<y:LabelModel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="66.349609375" x="23.3251953125" y="18.8994140625">IRQICC = 1<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -320,7 +320,7 @@ IRQIC = (!IRQIC_in)? 0 : IRQIC;
           <y:Geometry height="56.5" width="113.0" x="41.6123861333333" y="1050.077155555556"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="37.333984375" x="37.8330078125" y="18.8994140625">IRQIC<y:LabelModel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="66.349609375" x="23.3251953125" y="18.8994140625">IRQICC=  1<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -867,7 +867,6 @@ IRQIC = (!IRQIC_in)? 0 : IRQIC;
       </data>
     </edge>
     <edge id="e29" source="n21" target="n12">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
