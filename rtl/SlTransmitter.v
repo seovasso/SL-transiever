@@ -217,7 +217,7 @@ always @ (posedge clk, negedge rst_n) begin
       if (wr_en && addr && config_is_different) status_r[IRQWCC] <= 1; //изменение конфигцрации во время отправки сообщения
       else if (wr_en && addr && !d_in[IRQWCC])  status_r[IRQWCC] <= 0; // сброс прерывания
 
-      if (wr_en && !addr && send_in_process)     status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
+      if (wr_en && !addr && send_in_process)    status_r[IRQDWE] <= 1; //попытка отправить сообщение во время отправки предыдущего
       else if (wr_en && addr && !d_in[IRQDWE])  status_r[IRQDWE] <= 0; // сброс прерывания
 
     //config register processing
