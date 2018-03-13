@@ -24,7 +24,7 @@
 par_0 = 0;
 par_1 = 1;
 bit_i = 0;
-cycle_i = const_1;
+cycle_i = 0;
 sl_0_tmp [11:0] = 12'hAAA;
 sl_1_tmp [11:0] = 12'hAAA;<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
