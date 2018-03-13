@@ -115,8 +115,12 @@ include::spec_ApbCommunicator.adoc[]
 include::spec_Router.adoc[]
 include::spec_SlTransmitter.adoc[]
 include::spec_SlReciever.adoc[]
+
 // Return to normal title levels.
 :leveloffset: 0
+
+[[description]]
+==  Описание
 
 [[top-level-description]]
 === Описание верхнего уровня
