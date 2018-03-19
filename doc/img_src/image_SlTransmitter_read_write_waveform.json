@@ -7,7 +7,7 @@
   {name: "tx_data_r",   	  wave:"=........=..", node: '...............', data:["data0","data1"]},
   {name: "D_out",   		  wave:"=..==..=..=.", node: '...............', data:["data0","cnf0","cnf1","data0","data1"]},
   {                           node:'..ab....cd..'},
-  {                           node:'..efg.hi.jk.'}
+  {                           node:'..ef..hi....'}
    //,
    
   
