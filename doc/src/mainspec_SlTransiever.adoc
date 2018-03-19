@@ -108,16 +108,12 @@ SlTranciever предназначен для взаимодействия с п�
 
 [[low-level-modules]]
 == Подмодули
-:leveloffset: 2
 
+include::spec_ApbCommunicator.adoc[leveloffset=+2]
+include::spec_Router.adoc[leveloffset=+2]
+include::spec_SlTransmitter.adoc[leveloffset=+2]
+include::spec_SlReciever.adoc[leveloffset=+2]
 
-include::spec_ApbCommunicator.adoc[]
-include::spec_Router.adoc[]
-include::spec_SlTransmitter.adoc[]
-include::spec_SlReciever.adoc[]
-
-// Return to normal title levels.
-:leveloffset: 0
 
 [[description]]
 ==  Описание
