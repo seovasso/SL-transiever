@@ -1,0 +1,5 @@
+
+asciidoctor: WARNING: spec_SlTransmitter.adoc: line 294: list item index: expected 3, got 2
+asciidoctor: WARNING: spec_SlTransmitter.adoc: line 297: list item index: expected 4, got 3
+ is not a known font.
+  Use --trace for backtrace
