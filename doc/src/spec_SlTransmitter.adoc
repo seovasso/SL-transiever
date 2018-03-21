@@ -102,10 +102,10 @@ image::SL.png[title="Временная диаграмма SL-канала", ali
 .Назначение разрядов части состояния служебного регистра (*config_status_r [31:16]*)
 [cols="8*^", width=99%]
 |===
-|Bit     |31-28 |27       |26      |25      |24      |23-17 |16
-|Name    |-     |*IRQDWE* |*IRQIC* |*IRQCC* |*IRQSM* |-     |*SIP*
-|Mode    |R     |R/W0     |R/W0    |R/W0    |R/W0    |R     |R
-|Initial |0     |0        |0       |0       |0       |0     |0
+|Bit     |31-28 |27       |26       |25       |24      |23-17 |16
+|Name    |-     |*IRQDWE* |*IRQICC* |*IRQWCC* |*IRQSM* |-     |*SIP*
+|Mode    |R     |R/W0     |R/W0     |R/W0     |R/W0    |R     |R
+|Initial |0     |0        |0        |0        |0       |0     |0
 |===
 
 .Описание разрядов части состояния служебного регистра (*config_status_r [31:16]*)
