@@ -1,0 +1,18 @@
+{signal: [
+  {name: "clk",   			  wave:"P...........", node: '...............'},
+  {name: "D_in",   			  wave:"x.=x..x.=x..", node: '...............', data:["cnf1","data1"]},
+  {name: "addr",   			  wave:"0.1...0.....", node: '...............'},
+  {name: "wr_en",   		  wave:"0.10....10..", node: '...............'},
+  {name: "config_status_r",   wave:"=..=........", node: '...............', data:["cnf0","cnf1"]},
+  {name: "tx_data_r",   	  wave:"=........=..", node: '...............', data:["data0","data1"]},
+  {name: "D_out",   		  wave:"=..==..=..=.", node: '...............', data:["data0","cnf0","cnf1","data0","data1"]},
+  {name: "write",             wave:"z.=z....=z..", node: '...............', data:["write","write"]},
+  {name: "read",              wave:"z.=z..=z....", node: '...............', data:["read","read"]},                                                                                
+
+   
+  
+],
+  edge:
+  ['a<->b write', "c<->d write",'e<->f read', "f<->g read","h<->i read","j<->k read",],
+ config: { hscale: 1 }
+}
