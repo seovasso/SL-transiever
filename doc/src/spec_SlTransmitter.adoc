@@ -18,7 +18,7 @@
 :figure-caption:    Рисунок
 :imagesdir:         ./../img/
 :sectnums:
-:xrefstyle: full
+:xrefstyle: short
 :sectnumlevels: 3
 :revnumber: 1.1
 :revdate:   15.12.2017
